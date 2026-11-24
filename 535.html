@@ -1,0 +1,2481 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XRP Quant Hydrodynamics & Kalshi 5m/15m Scalping Terminal</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --panel: #0d1421;
+      --panel-2: #121c2d;
+      --border: #1e2d45;
+      --text: #e6edf7;
+      --muted: #8aa0c2;
+      --green: #16c784;
+      --green-dim: rgba(22, 199, 132, 0.14);
+      --red: #ea3943;
+      --red-dim: rgba(234, 57, 67, 0.14);
+      --amber: #f5b041;
+      --amber-dim: rgba(245, 176, 65, 0.14);
+      --cyan: #38bdf8;
+      --cyan-dim: rgba(56, 189, 248, 0.14);
+      --purple: #a78bfa;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    button:hover { border-color: var(--cyan); background: #17253b; }
+    button.primary { background: #0ea5e9; border-color: #38bdf8; color: #04101c; }
+    button.primary:hover { background: #38bdf8; }
+    button.success { background: var(--green); border-color: var(--green); color: #041810; }
+    button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+    button.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+    input, select {
+      background: #09101b;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    /* Top Command Bar */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #0a101b;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 10px var(--green);
+      animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .price-hero {
+      display: flex; align-items: baseline; gap: 10px;
+      font-family: var(--mono);
+    }
+    .price-big { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .timers { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 8px; border-radius: 999px;
+      background: var(--panel-2); border: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px;
+    }
+    .pill.ok { border-color: rgba(22,199,132,0.5); color: var(--green); }
+    .pill.warn { border-color: rgba(245,176,65,0.5); color: var(--amber); }
+    .pill.err { border-color: rgba(234,57,67,0.5); color: var(--red); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Calibration Approval Banner */
+    .cal-banner {
+      margin: 12px 16px 0;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--amber);
+      background: linear-gradient(90deg, rgba(245,176,65,0.14), rgba(13,20,33,0.96));
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .cal-banner.show { display: flex; }
+
+    /* Main Grid */
+    .container {
+      padding: 12px 16px 32px;
+      display: grid;
+      grid-template-columns: 1.75fr 1fr;
+      gap: 12px;
+      max-width: 1700px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1120px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .full-span { grid-column: 1 / -1; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; flex-wrap: wrap;
+      border-bottom: 1px solid rgba(30,45,69,0.7);
+      padding-bottom: 8px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.7px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* Verdict & Scalp Plan */
+    .verdict-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.4fr;
+      gap: 12px;
+    }
+    @media (max-width: 780px) {
+      .verdict-grid { grid-template-columns: 1fr; }
+    }
+    .verdict-box {
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+    }
+    .verdict-box.long { border-color: var(--green); background: var(--green-dim); }
+    .verdict-box.short { border-color: var(--red); background: var(--red-dim); }
+    .verdict-box.wait { border-color: var(--amber); background: var(--amber-dim); }
+    .verdict-label { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+    .scalp-metrics {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-top: 8px;
+    }
+    @media (max-width: 600px) { .scalp-metrics { grid-template-columns: repeat(2, 1fr); } }
+    .mini-stat {
+      background: rgba(7, 11, 18, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    .mini-stat .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .mini-stat .val { font-family: var(--mono); font-size: 13px; font-weight: 700; margin-top: 2px; }
+    .plain-english {
+      background: #0a121f;
+      border-left: 3px solid var(--cyan);
+      padding: 10px 12px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      color: #dbeafe;
+    }
+
+    /* Chart */
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 410px;
+      background: #060a11;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    canvas#mainChart { width: 100%; height: 100%; display: block; cursor: crosshair; }
+    .chart-legend {
+      position: absolute; top: 8px; left: 10px;
+      display: flex; gap: 10px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 11px;
+      background: rgba(7,11,18,0.82); padding: 4px 8px; border-radius: 6px;
+      border: 1px solid rgba(30,45,69,0.8);
+      pointer-events: none;
+    }
+
+    /* Telemetry Grid */
+    .kv-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    }
+    .kv {
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 7px 9px;
+    }
+    .kv .k { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .kv .v { font-family: var(--mono); font-size: 13px; font-weight: 700; margin-top: 2px; }
+    .kv .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* Alerts / Flips / Anomalies */
+    .feed-list {
+      max-height: 210px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .feed-item {
+      padding: 7px 9px; border-radius: 6px;
+      background: var(--panel-2); border: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .feed-item.bull { border-left: 3px solid var(--green); }
+    .feed-item.bear { border-left: 3px solid var(--red); }
+    .feed-item.anom { border-left: 3px solid var(--purple); }```css
+.feed-item.neut { border-left: 3px solid var(--amber); }
+.dir { padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-right:6px; }
+.dir.bull { background:var(--green-dim); color:var(--green); }
+.dir.bear { background:var(--red-dim); color:var(--red); }
+.dir.neut { background:var(--amber-dim); color:var(--amber); }
+```
+
+
+    /* Tabs & Tables */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td {
+      text-align: left; padding: 7px 8px;
+      border-bottom: 1px solid rgba(30,45,69,0.7);
+      font-family: var(--mono); font-size: 11px;
+    }
+    th { color: var(--muted); font-weight: 700; text-transform: uppercase; background: #0a101b; position: sticky; top: 0; }
+    .table-scroll { max-height: 290px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .badge {
+      padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;
+      display: inline-block;
+    }
+    .b-win { background: var(--green-dim); color: var(--green); }
+    .b-loss { background: var(--red-dim); color: var(--red); }
+    .b-pend { background: var(--amber-dim); color: var(--amber); }
+    .b-live { background: var(--cyan-dim); color: var(--cyan); }
+    .b-wf { background: rgba(167,139,250,0.18); color: var(--purple); }
+
+    /* Resource Grid */
+    .res-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px;
+    }
+    .res-card {
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px;
+    }
+    .res-card h4 { margin: 0 0 6px; font-size: 12px; color: var(--cyan); }
+    .res-card ul { margin: 0; padding-left: 16px; }
+    .res-card li { margin-bottom: 4px; font-size: 11px; color: var(--muted); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 12px; max-width: 920px; width: 100%; max-height: 86vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-body {
+      padding: 16px 20px; overflow-y: auto; font-size: 13px; line-height: 1.6;
+    }
+    .modal-body pre {
+      background: #070b12; padding: 10px; border-radius: 6px;
+      border: 1px solid var(--border); overflow-x: auto; font-family: var(--mono); font-size: 11px;
+    }
+
+    /* Candle Reader */
+    .cr-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin:10px 0; }
+    .cr-stat { background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+    .cr-stat .k { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .cr-stat .v { font-family:var(--mono); font-size:13px; font-weight:700; margin-top:2px; }
+    .cr-read { background:var(--panel-2); border:1px solid var(--border); border-left:3px solid var(--cyan); border-radius:8px; padding:10px 12px; margin:10px 0; }
+    .cr-chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; margin:0 4px 4px 0; border:1px solid var(--border); }
+    .cr-chip.bull { color:var(--green); background:var(--green-dim); border-color:var(--green); }
+    .cr-chip.bear { color:var(--red); background:var(--red-dim); border-color:var(--red); }
+    .cr-chip.neutral { color:var(--amber); background:var(--amber-dim); border-color:var(--amber); }
+    .cr-pat { border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin-bottom:6px; background:var(--panel-2); }
+    .cr-pat b { font-size:12px; }
+    .cr-pat div { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.5; }
+    .cr-h { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:14px 0 6px; }
+    .cr-table td, .cr-table th { padding:5px 8px; vertical-align:middle; text-align:left; }
+    .cr-note { font-size:10px; color:var(--muted); margin-top:10px; }
+  </style>
+</head>
+<body>
+  <!-- TOP COMMAND BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-dot" id="masterDot"></div>
+      <div>
+        <div style="font-weight:800;font-size:14px;letter-spacing:0.3px;">XRP QUANT HYDRODYNAMICS &amp; KALSHI TERMINAL</div>
+        <div style="font-size:11px;color:var(--muted);">Physics · Stochastic SDE · Microstructure CVD/OBI · Deribit GEX · XRPL On-Chain</div>
+      </div>
+    </div>
+
+    <div class="price-hero">
+      <span class="price-big" id="livePrice">$----</span>
+      <span id="priceSpread" style="font-size:11px;color:var(--muted);">Index: --</span>
+    </div>
+
+    <div class="timers">
+      <span class="pill" id="timer5m">5m Scalp: --:--</span>
+      <span class="pill" id="timer15m">Kalshi 15m: --:--</span>
+      <span class="pill err" id="stCB">CB: WAIT</span>
+      <span class="pill err" id="stKRK">KRK: WAIT</span>
+      <span class="pill err" id="stHL">HL: WAIT</span>
+      <span class="pill err" id="stXRPL">XRPL: WAIT</span>
+      <span class="pill warn" id="stKalshi">KALSHI: PROXY/IDX</span>
+    </div>
+
+    <div class="actions">
+      <button onclick="openWhitepaperModal()">📄 White Paper &amp; Logic</button>
+      <button class="primary" onclick="downloadAllSourceZip()">⬇️ Download All Source + White Paper (.zip)</button>
+    </div>
+  </header>
+
+  <!-- SELF-MONITORING HUMAN APPROVAL BANNER -->
+  <div class="cal-banner" id="calBanner">
+    <div style="flex:1;min-width:260px;">
+      <div style="font-weight:800;color:var(--amber);font-size:13px;">
+        ⚠️ SELF-MONITORING CALIBRATION REQUEST — HUMAN APPROVAL REQUIRED
+      </div>
+      <div id="calReason" style="margin-top:3px;font-size:12px;"></div>
+      <div id="calDiff" style="margin-top:5px;font-family:var(--mono);font-size:11px;color:#fde68a;"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="success" onclick="approveCalibration()">✅ Approve &amp; Apply Calibration</button>
+      <button class="danger" onclick="rejectCalibration()">✖ Reject &amp; Keep Current</button>
+    </div>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="container">
+    <!-- LEFT COLUMN: VERDICT, CHART, FLIPS & ANOMALIES -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">1. Live Execution Plan &amp; Plain-Language Synthesis</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:11px;color:var(--muted);">Forecast Horizon:</span>
+          <button id="hz5" class="active" onclick="setHorizon(5)">5m Scalp</button>
+          <button id="hz15" onclick="setHorizon(15)">15m Kalshi</button>
+        </div>
+      </div>
+
+      <div class="verdict-grid">
+        <div class="verdict-box wait" id="verdictBox">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;">Primary Signal</span>
+            <span class="pill" id="regimeBadge">REGIME: ANALYZING</span>
+          </div>
+          <div class="verdict-label" id="verdictText" style="margin-top:4px;">CALIBRATING STREAMS...</div>
+          <div style="font-family:var(--mono);font-size:12px;margin-top:4px;" id="kalshiProbLine">
+            P(Above Strike): --% | Fair YES: --¢
+          </div>
+          <div class="scalp-metrics">
+            <div class="mini-stat"><div class="lbl">Entry Zone</div><div class="val" id="sigEntry">--</div></div>
+            <div class="mini-stat"><div class="lbl">Target Exit</div><div class="val" id="sigTarget" style="color:var(--green);">--</div></div>
+            <div class="mini-stat"><div class="lbl">Stop / Inv</div><div class="val" id="sigStop" style="color:var(--red);">--</div></div>
+            <div class="mini-stat"><div class="lbl">Est Hold</div><div class="val" id="sigHold" style="color:var(--cyan);">--</div></div>
+          </div>
+        </div>
+
+        <div class="plain-english" id="plainNarrative">
+          Connecting to live Coinbase Spot, Kraken L2 Order Book, Hyperliquid Perps, Deribit Options, and XRPL Ledger streams. Once ~30 ticks/candles synchronize, this panel translates multi-factor microstructure, physics, and derivatives math into plain-language trade reasoning.
+        </div>
+      </div>
+
+      <!-- CHART CONTROLS -->
+      <div class="card-header" style="padding-top:4px;">
+        <div class="card-title">2. Price Action &amp; Forecast Mapping Chart</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button id="tf1" class="active" onclick="setTimeframe(1)">1m Candles</button>
+          <button id="tf5" onclick="setTimeframe(5)">5m Candles</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:6px;">Kalshi Strike ($):</span>
+          <input type="number" step="0.0001" id="strikeInput" style="width:92px;" placeholder="Auto" />
+          <button onclick="lockWindowOpenStrike()">Lock Open Strike</button>
+          <button onclick="clearManualStrike()">Auto</button>
+          <button class="primary" onclick="openCandleReader()">🕯 Candle Reader</button>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="mainChart"></canvas>
+        <div class="chart-legend" id="chartLegend">
+          <span style="color:var(--green);">■ Candles</span>
+          <span style="color:var(--cyan);">━ Kalman Latent</span>
+          <span style="color:var(--amber);">┈ Micro-VWAP</span>
+          <span style="color:var(--purple);">┄ FORECAST Path &amp; 1σ/2σ Cone</span>
+          <span style="color:#f472b6;">━ Kalshi Strike</span>
+        </div>
+      </div>
+
+      <!-- FLIPS & ANOMALIES -->
+      <div class="card-header">
+        <div class="card-title">3. Flip Predictor &amp; Causal Anomaly Radar</div>
+        <span style="font-size:11px;color:var(--muted);">Explains *why* before apparent anomalies hit price</span>
+      </div>
+      <div class="feed-list" id="anomalyFeed">
+        <div class="feed-item">Initializing causal anomaly &amp; microstructure flip detectors...</div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: TELEMETRY + KALSHI + XRPL -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">4. Physics &amp; Microstructure Engine</div>
+        <button onclick="runSelfAudit(true)">🔍 Run Self-Audit</button>
+      </div>
+
+      <div class="kv-grid">
+        <div class="kv">
+          <div class="k">Hydrodynamics (Reynolds Re)</div>
+          <div class="v" id="mReynolds">--</div>
+          <div class="sub" id="mVelAcc">Vel: -- | Acc: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">OU Half-Life &amp; Hurst (H)</div>
+          <div class="v" id="mOU">--</div>
+          <div class="sub" id="mHurst">Hurst H: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">Spot CVD (CB + KRK)</div>
+          <div class="v" id="mSpotCVD">--</div>
+          <div class="sub" id="mSpotDiv">Spot-Perp Div: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">Perp CVD (Hyperliquid)</div>
+          <div class="v" id="mPerpCVD">--</div>
+          <div class="sub" id="mHawkes">Hawkes λ: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">L2 Order Book Imbalance</div>
+          <div class="v" id="mOBI">--</div>
+          <div class="sub" id="mWalls">Ask/Bid Walls: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">Hyperliquid Funding &amp; OI</div>
+          <div class="v" id="mFunding">--</div>
+          <div class="sub" id="mOI">OI: -- | Basis: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">VPIN Toxicity &amp; BTC β</div>
+          <div class="v" id="mVPIN">--</div>
+          <div class="sub" id="mBTC">BTC 15m Ret: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">Deribit XRP Options GEX</div>
+          <div class="v" id="mGEX">--</div>
+          <div class="sub" id="mMaxPain">Max Pain / P-C: --</div>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-top:4px;">
+        <div class="card-title">5. Kalshi KXXRP15M Edge &amp; TWAP Estimator</div>
+        <span style="font-size:11px;color:var(--muted);">CF Benchmarks 60s Avg</span>
+      </div>
+      <div class="kv-grid">
+        <div class="kv">
+          <div class="k">Active Strike &amp; 60s TWAP</div>
+          <div class="v" id="kStrike">--</div>
+          <div class="sub" id="kTwap">Est 60s RTI: --</div>
+        </div>
+        <div class="kv">
+          <div class="k">Kalshi Mkt YES Price (¢)</div>
+          <div style="display:flex;gap:4px;margin-top:2px;">
+            <input type="number" id="kalshiYesInput" value="50" min="1" max="99" style="width:60px;" />
+            <span id="kEdge" style="font-family:var(--mono);font-size:12px;font-weight:700;align-self:center;">Edge: --</span>
+          </div>
+          <div class="sub" id="kProxyNote">Auto-polls local proxy :8787 if active</div>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-top:4px;">
+        <div class="card-title">6. Live XRPL On-Chain Whale &amp; Ledger Flow</div>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--cyan);" id="xrplLedgerIdx">Ledger: --</span>
+      </div>```html
+<div class="kv" id="xrplSummary" style="font-family:var(--mono);font-size:11px;">Net XRPL flow (5m): --</div>
+```
+      <div class="feed-list" id="xrplFeed" style="max-height:195px;">
+        <div class="feed-item">Subscribing to wss://xrplcluster.com validated ledgers...</div>
+      </div>
+    </section>
+
+    <!-- BOTTOM FULL-WIDTH AUDIT, CALIBRATION & RESOURCE HUB -->
+    <section class="card full-span">
+      <div class="card-header">
+        <div class="tabs">
+          <button class="active" id="tabBtnLog" onclick="switchTab('tabLog')">📊 Running Accuracy Log</button>
+          <button id="tabBtnGov" onclick="switchTab('tabGov')">🧠 Self-Monitor &amp; Calibration Governance</button>
+          <button id="tabBtnRes" onclick="switchTab('tabRes')">🔗 Master Resource &amp; API Hub (20+ Terminals)</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="snapshotLiveForecast(true)">📸 Log Forecast Now</button>
+          <button onclick="exportAccuracyCSV()">💾 Export Accuracy CSV</button>
+          <button onclick="resetAccuracyLog()">🗑 Reset Log</button>
+        </div>
+      </div>
+
+      <!-- TAB 1: ACCURACY LOG -->
+      <div class="tab-pane active" id="tabLog">
+        <div class="scalp-metrics" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px;">
+          <div class="mini-stat"><div class="lbl">Total Resolved</div><div class="val" id="accTotal">0</div></div>
+          <div class="mini-stat"><div class="lbl">Direction Hit %</div><div class="val" id="accHit">--%</div></div>
+          <div class="mini-stat"><div class="lbl">Live Tick Hit %</div><div class="val" id="accLiveHit">--%</div></div>
+          <div class="mini-stat"><div class="lbl">Brier Score</div><div class="val" id="accBrier">--</div></div>
+          <div class="mini-stat"><div class="lbl">Mean Error (bps)</div><div class="val" id="accMAE">--</div></div>
+          <div class="mini-stat"><div class="lbl">Calib Status (ECE)</div><div class="val" id="accECE">--</div></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Time (Local)</th>
+                <th>Mode</th>
+                <th>Hz</th>
+                <th>Start $</th>
+                <th>Strike $</th>
+                <th>Pred $</th>
+                <th>P(YES)</th>
+                <th>Signal</th>
+                <th>Actual $</th>
+                <th>Err (bps)</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="accTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: GOVERNANCE & SELF-MONITORING -->
+      <div class="tab-pane" id="tabGov">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div style="font-weight:700;margin-bottom:6px;color:var(--cyan);">Active Model Factor Weights &amp; Temperature</div>
+            <div class="table-scroll" style="max-height:220px;">
+              <table>
+                <thead><tr><th>Factor</th><th>Weight</th><th>Recent Corr (r)</th><th>Contribution</th></tr></thead>
+                <tbody id="weightsBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px;color:var(--amber);">Human-Approved Calibration Audit Trail</div>
+            <div class="table-scroll" style="max-height:220px;">
+              <table>
+                <thead><tr><th>Timestamp</th><th>Decision</th><th>Diagnosis / Parameter Change</th></tr></thead>
+                <tbody id="govLogBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: MASTER RESOURCE MATRIX -->
+      <div class="tab-pane" id="tabRes">
+        <div class="res-grid">
+          <div class="res-card">
+            <h4>1. Order-Book Heatmaps &amp; CVD</h4>
+            <ul>
+              <li><a href="https://aggr.trade" target="_blank">Aggr.trade</a> — Tick-by-tick Spot vs Perp CVD tape</li>
+              <li><a href="https://tapesurf.com" target="_blank">TapeSurf</a> — Millisecond XRP order-book ask/bid absorption</li>
+              <li><a href="https://tradinglite.com" target="_blank">TradingLite</a> — Limit Order Book Heatmap</li>
+              <li><a href="https://exocharts.com" target="_blank">Exocharts Web</a> — Footprint, POC, OI + CVD</li>
+              <li><a href="https://bookmap.com" target="_blank">Bookmap Web</a> — Liquidity heat trails &amp; bubbles</li>
+              <li><a href="https://tradingview.com" target="_blank">TradingView</a> — 1m/5m CVD &amp; alerts</li>
+              <li><b>Basis XRP Order Flow</b> / <b>MMT</b> / <b>MarketTrace</b> — Free browser footprint &amp; cross-exchange perp delta</li>
+            </ul>
+          </div>
+          <div class="res-card">
+            <h4>2. Derivatives, Liquidations &amp; Funding</h4>
+            <ul>
+              <li><a href="https://coinglass.com" target="_blank">CoinGlass XRP Liquidations &amp; Heatmap</a> — 12h/24h clusters &amp; Rekt tape</li>
+              <li><a href="https://coinglass.com" target="_blank">CoinGlass Funding &amp; Live Orderflow</a> — Short-trap funding comparison</li>
+              <li><a href="https://coinalyze.net" target="_blank">CoinAlyze XRP</a> — Aggregated OI, Predicted Funding, L/S Ratio</li>
+              <li><a href="https://velo.xyz" target="_blank">Velo.xyz</a> — Institutional Spot vs Perp &amp; OI deltas</li>
+              <li><a href="https://hyblockcapital.com" target="_blank">Hyblock Capital</a> — True Retail L/S &amp; liquidation bands</li>
+              <li><b>CoinAnk</b> &amp; <b>The Kingfisher</b> — Free futures liquidation intensity maps</li>
+            </ul>
+          </div>
+          <div class="res-card">
+            <h4>3. On-Chain XRPL &amp; Options Gamma</h4>
+            <ul>
+              <li><a href="https://xrplcluster.com" target="_blank">XRPL Cluster (Live WS)</a> — 3–5s ledgers &amp; whale payments</li>
+              <li><a href="https://xrpscan.com" target="_blank">XRPScan &amp; Metrics</a> — Exchange hot wallets vs cold custody + AMM</li>
+              <li><a href="https://whale-alert.io" target="_blank">Whale Alert</a> — Multi-million exchange inflows/outflows</li>
+              <li><a href="https://laevitas.ch" target="_blank">Laevitas</a> — Deribit XRP Options OI, Max Pain &amp; GEX</li>
+              <li><a href="https://greeks.live" target="_blank">Greeks.live</a> — Options block-trade tape &amp; IV</li>
+              <li><a href="https://www.deribit.com" target="_blank">Deribit Public API (Live REST)</a> — Native USDC-settled XRP options</li>
+            </ul>
+          </div>
+          <div class="res-card">
+            <h4>4. Execution &amp; Live Public Streams</h4>
+            <ul>
+              <li><a href="https://kalshi.com" target="_blank">Kalshi KXXRP15M</a> — CF Benchmarks XRPUSD_RTI 60s final avg</li>
+              <li><code>wss://advanced-trade-ws.coinbase.com</code> — US Spot XRP/BTC trades</li>
+              <li><code>wss://ws.kraken.com/v2</code> — Spot trades &amp; 25-level L2 book</li>
+              <li><code>wss://api.hyperliquid.xyz/ws</code> — Perp trades, L2, Funding, OI</li>
+              <li><code>wss://xrplcluster.com</code> — Real-time XRPL ledger transactions</li>
+              <li><code>https://hermes.pyth.network</code> — Low-latency cross-venue oracle backup</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- WHITE PAPER MODAL -->
+  <div class="modal-backdrop" id="wpModal">
+    <div class="modal">
+      <div class="card-header" style="padding:12px 18px;background:#0a101b;">
+        <div class="card-title">📄 Quantitative White Paper &amp; System Logic Specification</div>
+        <button onclick="closeWhitepaperModal()">✖ Close</button>
+      </div>
+      <div class="modal-body" id="wpContent"></div>
+    </div>
+  </div>
+
+  <!-- CANDLE READER MODAL -->
+  <div class="modal-backdrop" id="crModal" onclick="if(event.target===this)closeCandleReader()">
+    <div class="modal">
+      <div class="card-header" style="padding:12px 18px;background:#0a101b;">
+        <div class="card-title">🕯 Candle Reader — Pattern Identification &amp; Plain-Language Translation</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="crTf1" onclick="setReaderTf(1)">1m</button>
+          <button id="crTf5" onclick="setReaderTf(5)">5m</button>
+          <button onclick="closeCandleReader()">✖ Close</button>
+        </div>
+      </div>
+      <div class="modal-body" id="crContent"></div>
+    </div>
+  </div>
+
+<script>
+// Capture pristine HTML immediately before dynamic DOM updates for exact source bundling
+let PRISTINE_INDEX_HTML = "";
+
+/* ============================================================================
+ * 1. STATE & PARAMETERS (WITH HUMAN-GOVERNED CALIBRATION)
+ * ==========================================================================*/
+const DEFAULT_PARAMS = {
+  weights: {
+    spotDiv: 0.24,      // Spot CVD vs Perp CVD divergence
+    obi: 0.18,          // Multi-level L2 Order Book Imbalance
+    fundingTrap: 0.16,  // Hyperliquid Funding + OI trap / squeeze
+    ouRevert: 0.14,     // Ornstein-Uhlenbeck micro-VWAP mean reversion vs momentum
+    hawkes: 0.12,       // Hawkes self-exciting trade burst persistence
+    xrplFlow: 0.08,     // XRPL whale exchange inflow/outflow bias
+    btcLead: 0.08       // Macro BTC 5m lead-lag liquidity beta
+  },
+  temperature: 1.05,    // Logistic calibration temperature for Kalshi P(YES)
+  reynoldsBreakoutThresh: 1.45,
+  version: "v1.0.0-baseline"
+};
+
+const EXCHANGE_WALLETS = {
+  // Curated public XRP Ledger hot/deposit clusters for flow classification
+  "rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh": "Binance",
+  "rEy8TFcrAPvhpKrwyrscNYyqBGUkE9hKaJ": "Binance",
+  "rw2ciyaNshpHe7bCHo4bRWq6pqqynnWKQg": "Coinbase",
+  "rLNaPoKeeBjZe2qs6x52yVPZpZ8td4dc6w": "Coinbase",
+  "rLHzPsX6oXkzU2qL12kHCH8G8cnZv1rBJh": "Kraken",
+  "rPVMhWBsfF9iMXYj3aAzJVkPDTFNSyWdKy": "Bittrex/Legacy",
+  "rNxp4h8apvRis6mJf9Sh8C6iRxfrDWN7AV": "Upbit",
+  "raQwCVAJVqjrVm1W5SFRcX8g7g176o1wB": "Upbit",
+  "rDsbeomae4FXwgQTJp9Rs64Qg9vDiTCdBv": "Bitstamp",
+  "rKV8HEL3vLc6q921qazWCyaPMB2d5V7N4R": "Crypto.com"
+};
+
+const state = {
+  horizonMin: 5,
+  timeframeMin: 1,
+  candles1m: [],        // { t, o, h, l, c, v, buyVol, sellVol }
+  ticks: [],            // { t, p, sz, side, venue }
+  cbPrice: null,
+  krkPrice: null,
+  hlPrice: null,
+  hlOracle: null,
+  hlFunding: 0,         // hourly funding
+  hlOI: 0,
+  hlPrevOI: 0,
+  btcReturn5m: 0,
+  btcPrices: [],
+  spotCVD: 0,
+  perpCVD: 0,
+  spotCvdHist: [],
+  perpCvdHist: [],
+  tradeTimestamps: [],  // ms for Hawkes intensity
+  krkBook: { bids: new Map(), asks: new Map() },
+  hlBook: { bids: [], asks: [] },
+  deribit: { maxPain: null, pcRatio: null, gexBias: 0, oiTotal: 0 },
+  xrpl: { ledger: 0, flowBias: 0, events: [] },
+  kalshi: {
+    manualStrike: null,
+    windowOpenStrike: null,
+    marketYesCents: 50,
+    liveTicker: null,
+    proxyConnected: false
+  },
+  metrics: {
+    indexPrice: null,
+    kalmanPrice: null,
+    kalmanVel: 0,
+    kalmanAcc: 0,
+    kalmanVar: 1e-6,
+    reynolds: 0,
+    ouTheta: 0.15,
+    ouHalfLifeMin: 4.6,
+    hurst: 0.5,
+    sigma1m: 0.0018,
+    obi: 0,
+    vpin: 0.25,
+    hawkesLambda: 1.0,
+    microVwap: null,
+    forecastPath: [],
+    upper1: [], lower1: [],
+    upper2: [], lower2: [],
+    pYes: 0.5,
+    verdict: "WAIT",
+    entry: 0, target: 0, stop: 0,
+    holdText: "--",
+    narrative: "",
+    features: {}
+  },
+  anomalies: [],
+  params: loadParams(),
+  accuracyLog: loadJSON("xrp_acc_log_v1", []),
+  govLog: loadJSON("xrp_gov_log_v1", []),
+  pendingProposal: null,
+  lastLiveLogMinute: 0,
+  walkForwardSeeded: false
+};
+
+function loadJSON(k, fallback) {
+  try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function saveJSON(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+}
+function loadParams() {
+  const saved = loadJSON("xrp_params_v1", null);
+  return saved && saved.weights ? saved : JSON.parse(JSON.stringify(DEFAULT_PARAMS));
+}
+
+/* ============================================================================
+ * 2. HISTORICAL CANDLE BOOTSTRAP (COINBASE -> KRAKEN -> HYPERLIQUID FALLBACK)
+ * ==========================================================================*/
+async function loadHistoricalCandles() {
+  try {
+    const res = await fetch("https://api.exchange.coinbase.com/products/XRP-USD/candles?granularity=60");
+    if (!res.ok) throw new Error("CB REST " + res.status);
+    const raw = await res.json();
+    // [time_sec, low, high, open, close, volume] newest first
+    const parsed = raw.map(r => ({
+      t: r[0] * 1000, l: +r[1], h: +r[2], o: +r[3], c: +r[4], v: +r[5],
+      buyVol: (+r[4] >= +r[3] ? 0.62 : 0.38) * +r[5],
+      sellVol: (+r[4] >= +r[3] ? 0.38 : 0.62) * +r[5]
+    })).sort((a, b) => a.t - b.t);
+    state.candles1m = parsed.slice(-240);
+    state.cbPrice = state.candles1m[state.candles1m.length - 1]?.c || null;
+  } catch (e) {
+    try {
+      const res = await fetch("https://api.kraken.com/0/public/OHLC?pair=XRPUSD&interval=1");
+      const data = await res.json();
+      const key = Object.keys(data.result).find(k => k !== "last");
+      const parsed = data.result[key].map(r => ({
+        t: r[0] * 1000, o: +r[1], h: +r[2], l: +r[3], c: +r[4], v: +r[6],
+        buyVol: (+r[4] >= +r[1] ? 0.6 : 0.4) * +r[6],
+        sellVol: (+r[4] >= +r[1] ? 0.4 : 0.6) * +r[6]
+      })).sort((a, b) => a.t - b.t);
+      state.candles1m = parsed.slice(-240);
+      state.krkPrice = state.candles1m[state.candles1m.length - 1]?.c || null;
+    } catch (e2) {
+      pushAnomaly("DATA FALLBACK", "Both Coinbase & Kraken REST blocked; building candles from live WebSocket ticks.", "anom");
+    }
+  }
+  if (state.candles1m.length > 40 && !state.walkForwardSeeded) {
+    runWalkForwardBaseline();
+    state.walkForwardSeeded = true;
+  }
+  recomputeEngine();
+}
+
+/* ============================================================================
+ * 3. LIVE WEBSOCKET & POLLING CONNECTORS
+ * ==========================================================================*/
+function setStatus(id, text, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = "pill " + cls;
+}
+
+function connectCoinbaseWS() {
+  try {
+    const ws = new WebSocket("wss://advanced-trade-ws.coinbase.com");
+    ws.onopen = () => {
+      setStatus("stCB", "CB: LIVE", "ok");
+      ws.send(JSON.stringify({ type: "subscribe", product_ids: ["XRP-USD", "BTC-USD"], channel: "market_trades" }));
+      ws.send(JSON.stringify({ type: "subscribe", product_ids: ["XRP-USD"], channel: "heartbeats" }));
+    };
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.channel === "market_trades" && msg.events) {
+        for (const e of msg.events) {
+          for (const tr of (e.trades || [])) {
+            const p = +tr.price, sz = +tr.size;
+            if (tr.product_id === "BTC-USD") {
+              state.btcPrices.push({ t: Date.now(), p });
+              if (state.btcPrices.length > 300) state.btcPrices.shift();
+              const cutoff = Date.now() - 300000;
+              const old = state.btcPrices.find(x => x.t >= cutoff) || state.btcPrices[0];
+              if (old) state.btcReturn5m = (p - old.p) / old.p;
+              continue;
+            }
+            if (tr.product_id === "XRP-USD") {
+              const side = (tr.side || "").toUpperCase() === "BUY" ? "buy" : "sell";
+              ingestTrade("CB", p, sz, side);
+            }
+          }
+        }
+      }
+    };
+    ws.onerror = () => setStatus("stCB", "CB: ERR", "err");
+    ws.onclose = () => { setStatus("stCB", "CB: RECONN", "warn"); setTimeout(connectCoinbaseWS, 3000); };
+  } catch { setStatus("stCB", "CB: OFF", "err"); }
+}
+
+function connectKrakenWS() {
+  try {
+    const ws = new WebSocket("wss://ws.kraken.com/v2");
+    ws.onopen = () => {
+      setStatus("stKRK", "KRK: LIVE", "ok");
+      ws.send(JSON.stringify({ method: "subscribe", params: { channel: "trade", symbol: ["XRP/USD"] } }));
+      ws.send(JSON.stringify({ method: "subscribe", params: { channel: "book", symbol: ["XRP/USD"], depth: 25 } }));
+    };
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.channel === "trade" && Array.isArray(msg.data)) {
+        for (const tr of msg.data) {
+          ingestTrade("KRK", +tr.price, +tr.qty, tr.side === "buy" ? "buy" : "sell");
+        }
+      } else if (msg.channel === "book" && Array.isArray(msg.data)) {
+        for (const b of msg.data) {
+          if (msg.type === "snapshot") {
+            state.krkBook.bids.clear(); state.krkBook.asks.clear();
+          }
+          for (const lv of (b.bids || [])) {
+            if (+lv.qty === 0) state.krkBook.bids.delete(+lv.price);
+            else state.krkBook.bids.set(+lv.price, +lv.qty);
+          }
+          for (const lv of (b.asks || [])) {
+            if (+lv.qty === 0) state.krkBook.asks.delete(+lv.price);
+            else state.krkBook.asks.set(+lv.price, +lv.qty);
+          }
+        }
+      }
+    };
+    ws.onerror = () => setStatus("stKRK", "KRK: ERR", "err");
+    ws.onclose = () => { setStatus("stKRK", "KRK: RECONN", "warn"); setTimeout(connectKrakenWS, 3500); };
+  } catch { setStatus("stKRK", "KRK: OFF", "err"); }
+}
+
+function connectHyperliquidWS() {
+  try {
+    const ws = new WebSocket("wss://api.hyperliquid.xyz/ws");
+    ws.onopen = () => {
+      setStatus("stHL", "HL: LIVE", "ok");
+      ws.send(JSON.stringify({ method: "subscribe", subscription: { type: "trades", coin: "XRP" } }));
+      ws.send(JSON.stringify({ method: "subscribe", subscription: { type: "l2Book", coin: "XRP" } }));
+    };
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.channel === "trades" && Array.isArray(msg.data)) {
+        for (const tr of msg.data) {
+          const side = tr.side === "B" ? "buy" : "sell";
+          ingestTrade("HL", +tr.px, +tr.sz, side);
+        }
+      } else if (msg.channel === "l2Book" && msg.data?.levels) {
+        state.hlBook.bids = (msg.data.levels[0] || []).slice(0, 15).map(x => [+x.px, +x.sz]);
+        state.hlBook.asks = (msg.data.levels[1] || []).slice(0, 15).map(x => [+x.px, +x.sz]);
+      }
+    };
+    ws.onerror = () => setStatus("stHL", "HL: ERR", "err");
+    ws.onclose = () => { setStatus("stHL", "HL: RECONN", "warn"); setTimeout(connectHyperliquidWS, 3500); };
+  } catch { setStatus("stHL", "HL: OFF", "err"); }
+}
+
+async function pollHyperliquidMeta() {
+  try {
+    const res = await fetch("https://api.hyperliquid.xyz/info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "metaAndAssetCtxs" })
+    });
+    const [meta, ctxs] = await res.json();
+    const idx = meta.universe.findIndex(u => u.name === "XRP");
+    if (idx >= 0 && ctxs[idx]) {
+      const c = ctxs[idx];
+      state.hlPrevOI = state.hlOI || +c.openInterest;
+      state.hlOI = +c.openInterest;
+      state.hlFunding = +c.funding; // hourly funding rate
+      state.hlOracle = +c.oraclePx;
+      state.hlPrice = +c.markPx;
+    }
+  } catch {}
+}
+
+async function pollDeribitOptions() {
+  try {
+    const res = await fetch("https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=USDC&kind=option");
+    const json = await res.json();
+    const xrpOpts = (json.result || []).filter(o => (o.instrument_name || "").startsWith("XRP"));
+    if (!xrpOpts.length) return;
+    let callOI = 0, putOI = 0;
+    const strikes = new Map();
+    for (const o of xrpOpts) {
+      const parts = o.instrument_name.split("-");
+      const k = parseFloat(String(parts[2]).replace("d", ".")), cp = parts[3];
+      const oi = +o.open_interest || 0;
+      if (cp === "C") callOI += oi; else if (cp === "P") putOI += oi;
+      if (!isNaN(k)) {
+        const cur = strikes.get(k) || { c: 0, p: 0 };
+        if (cp === "C") cur.c += oi; else cur.p += oi;
+        strikes.set(k, cur);
+      }
+    }
+    // Compute Max Pain strike
+    let bestK = null, minPain = Infinity;
+    for (const [kTest] of strikes) {
+      let pain = 0;
+      for (const [k, v] of strikes) {
+        pain += Math.max(0, kTest - k) * v.c + Math.max(0, k - kTest) * v.p;
+      }
+      if (pain < minPain) { minPain = pain; bestK = kTest; }
+    }
+    state.deribit.maxPain = bestK;
+    state.deribit.oiTotal = callOI + putOI;
+    state.deribit.pcRatio = callOI > 0 ? putOI / callOI : 1;
+    state.deribit.gexBias = callOI + putOI > 0 ? (callOI - putOI) / (callOI + putOI) : 0;
+  } catch {}
+}
+
+function connectXRPL() {
+  try {
+   ```js
+const XRPL_FEED_MIN = 10000;     // show in feed
+const XRPL_ALERT_MIN = 100000;   // push anomaly alert
+
+function impactTier(effXrp) {
+  return effXrp >= 250000 ? "HIGH" : effXrp >= 50000 ? "MED" : "LOW";
+}
+
+// Returns {xrp, dir(+1/-1/0), weight, kind, reason} or null
+function classifyXRPLTx(tx) {
+  if (tx.TransactionType === "Payment") {
+    const amt = tx.DeliverMax ?? tx.Amount;
+    if (typeof amt !== "string" || tx.Account === tx.Destination) return null;
+    const xrp = Number(amt) / 1e6;
+    const src = EXCHANGE_WALLETS[tx.Account], dst = EXCHANGE_WALLETS[tx.Destination];
+    if (dst && !src)  return { xrp, dir: -1, weight: 1.0, kind: "PAYMENT", reason: `Deposit to ${dst}: coins moved to an exchange are usually there to be sold.` };
+    if (src && !dst)  return { xrp, dir: +1, weight: 1.0, kind: "PAYMENT", reason: `Withdrawal from ${src}: coins leaving an exchange usually means holding, so less sell supply.` };
+    if (src && dst)   return { xrp, dir: 0,  weight: 0,   kind: "PAYMENT", reason: `Exchange-to-exchange (${src} → ${dst}): internal shuffle or arbitrage, no net pressure.` };
+    return { xrp, dir: 0, weight: 0, kind: "PAYMENT", reason: "Unlabeled wallet to unlabeled wallet: intent unknown, not counted." };
+  }
+  if (tx.TransactionType === "OfferCreate") {
+    const gets = tx.TakerGets, pays = tx.TakerPays;
+    // Offer creator GIVES TakerGets and RECEIVES TakerPays
+    if (typeof gets === "string") {
+      const xrp = Number(gets) / 1e6;
+      return { xrp, dir: -1, weight: 0.35, kind: "DEX SELL ORDER", reason: "Wallet is offering XRP for a token on the XRPL DEX. Resting sell supply (orders can be cancelled, so weighted low)." };
+    }
+    if (typeof pays === "string") {
+      const xrp = Number(pays) / 1e6;
+      return { xrp, dir: +1, weight: 0.35, kind: "DEX BUY ORDER", reason: "Wallet is bidding to acquire XRP on the XRPL DEX. Resting buy demand (can be cancelled, so weighted low)." };
+    }
+    return null;
+  }
+  if (tx.TransactionType === "AMMWithdraw" || tx.TransactionType === "AMMDeposit") {
+    const a = tx.Amount;
+    if (typeof a !== "string") return null;
+    const xrp = Number(a) / 1e6;
+    return tx.TransactionType === "AMMWithdraw"
+      ? { xrp, dir: 0, weight: 0, kind: "AMM WITHDRAW", reason: "Liquidity leaving the AMM pool: thinner book, so bigger swings possible (no direction)." }
+      : { xrp, dir: 0, weight: 0, kind: "AMM DEPOSIT",  reason: "Liquidity added to the AMM pool: deeper book, so smaller swings likely (no direction)." };
+  }
+  return null;
+}
+
+ws.onmessage = (ev) => {
+  const msg = JSON.parse(ev.data);
+  if (msg.type === "ledgerClosed") {
+    state.xrpl.ledger = msg.ledger_index;
+    document.getElementById("xrplLedgerIdx").textContent = `Ledger #${msg.ledger_index} (${msg.txn_count} tx)`;
+    return;
+  }
+  if (msg.type !== "transaction" || !msg.validated || !msg.transaction) return;
+  if (msg.meta && msg.meta.TransactionResult !== "tesSUCCESS") return;
+
+  const tx = msg.transaction;
+  const c = classifyXRPLTx(tx);
+  if (!c || c.xrp < XRPL_FEED_MIN) return;
+
+  const effXrp = c.xrp * (c.weight || 1);
+  const tier = impactTier(effXrp);
+  const cls = c.dir > 0 ? "bull" : c.dir < 0 ? "bear" : "neut";
+  const label = c.dir > 0 ? "BULLISH ▲" : c.dir < 0 ? "BEARISH ▼" : "NEUTRAL ◆";
+
+  if (c.dir !== 0) {
+    state.xrpl.flowBias += c.dir * c.weight * Math.min(1, c.xrp / 250000);
+    state.xrpl.flowBias = Math.max(-2, Math.min(2, state.xrpl.flowBias));
+  }
+
+  state.xrpl.events.unshift({
+    t: Date.now(), xrp: c.xrp, effXrp, dir: c.dir, cls, label, tier,
+    kind: c.kind, reason: c.reason, hash: (tx.hash || "").slice(0, 10)
+  });
+  if (state.xrpl.events.length > 40) state.xrpl.events.pop();
+  renderXRPLFeed();
+******************8
+  if (c.xrp >= XRPL_ALERT_MIN && c.dir !== 0 && c.weight >= 1) {
+    pushAnomaly(`XRPL ${c.kind} (${Math.round(c.xrp).toLocaleString()} XRP) ${label}`, c.reason, cls);
+  }
+};
+```
+    ws.onerror = () => setStatus("stXRPL", "XRPL: ERR", "err");
+    ws.onclose = () => { setStatus("stXRPL", "XRPL: RECONN", "warn"); setTimeout(connectXRPL, 4000); };
+  } catch { setStatus("stXRPL", "XRPL: OFF", "err"); }
+}
+
+async function pollKalshiProxy() {
+  try {
+    const res = await fetch("http://127.0.0.1:8787/kalshi/markets?series_ticker=KXXRP15M&status=open", { signal: AbortSignal.timeout(1800) });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const m = (data.markets || [])[0];
+    if (m) {
+      state.kalshi.proxyConnected = true;
+      state.kalshi.liveTicker = m.ticker;
+      if (m.floor_strike) state.kalshi.windowOpenStrike = +m.floor_strike;
+      if (m.yes_bid != null && m.yes_ask != null) {
+        state.kalshi.marketYesCents = Math.round((+m.yes_bid + +m.yes_ask) / 2);
+        document.getElementById("kalshiYesInput").value = state.kalshi.marketYesCents;
+      }
+      setStatus("stKalshi", `KALSHI: ${m.ticker}`, "ok");
+      document.getElementById("kProxyNote").textContent = `Live Proxy: ${m.ticker} (Bid ${m.yes_bid}¢ / Ask ${m.yes_ask}¢)`;
+    }
+  } catch {
+    state.kalshi.proxyConnected = false;
+    setStatus("stKalshi", "KALSHI: IDX-SYNTH", "warn");
+  }
+}
+
+/* ============================================================================
+ * 4. TICK INGESTION & REAL-TIME CANDLE AGGREGATION
+ * ==========================================================================*/
+function ingestTrade(venue, price, size, side) {
+  const now = Date.now();
+  if (venue === "CB") state.cbPrice = price;
+  if (venue === "KRK") state.krkPrice = price;
+  if (venue === "HL") state.hlPrice = price;
+
+  const signed = side === "buy" ? size : -size;
+  if (venue === "CB" || venue === "KRK") {
+    state.spotCVD += signed;
+    state.spotCvdHist.push({ t: now, v: state.spotCVD });
+    if (state.spotCvdHist.length > 500) state.spotCvdHist.shift();
+  } else if (venue === "HL") {
+    state.perpCVD += signed;
+    state.perpCvdHist.push({ t: now, v: state.perpCVD });
+    if (state.perpCvdHist.length > 500) state.perpCvdHist.shift();
+  }
+
+  state.tradeTimestamps.push(now);
+  if (state.tradeTimestamps.length > 400) state.tradeTimestamps.shift();
+
+  state.ticks.push({ t: now, p: price, sz: size, side, venue });
+  if (state.ticks.length > 600) state.ticks.shift();
+
+  // Aggregate into 1m candle
+  const bucket = Math.floor(now / 60000) * 60000;
+  let last = state.candles1m[state.candles1m.length - 1];
+  if (!last || last.t < bucket) {
+    last = { t: bucket, o: price, h: price, l: price, c: price, v: 0, buyVol: 0, sellVol: 0 };
+    state.candles1m.push(last);
+    if (state.candles1m.length > 300) state.candles1m.shift();
+  } else {
+    last.h = Math.max(last.h, price);
+    last.l = Math.min(last.l, price);
+    last.c = price;
+  }
+  last.v += size;
+  if (side === "buy") last.buyVol += size; else last.sellVol += size;
+
+  // Auto-set 15m Kalshi window open strike if unset
+  if (!state.kalshi.windowOpenStrike && !state.kalshi.manualStrike) {
+    const win15Start = Math.floor(now / 900000) * 900000;
+    const openCandle = state.candles1m.find(c => c.t >= win15Start);
+    state.kalshi.windowOpenStrike = openCandle ? openCandle.o : price;
+  }
+}
+
+/* ============================================================================
+ * 5. MULTI-DISCIPLINARY QUANT ENGINE (PHYSICS + SDE + MICROSTRUCTURE)
+ * ==========================================================================*/
+function computeModelForSeries(candles, extras) {
+  const n = candles.length;
+  if (n < 20) return null;
+
+  const closes = candles.map(c => c.c);
+  const lastPrice = closes[n - 1];
+
+  // 1. Realized Volatility (1-minute log returns)
+  const rets = [];
+  for (let i = 1; i < n; i++) rets.push(Math.log(closes[i] / closes[i - 1]));
+  const recentRets = rets.slice(-45);
+  const meanR = recentRets.reduce((a, b) => a + b, 0) / recentRets.length;
+  const var1m = recentRets.reduce((a, r) => a + (r - meanR) ** 2, 0) / Math.max(1, recentRets.length - 1);
+  const sigma1m = Math.max(0.0004, Math.sqrt(var1m));
+
+  // 2. Micro-VWAP (last 30 candles)
+  let pv = 0, vv = 0;
+  for (const c of candles.slice(-30)) {
+    const tp = (c.h + c.l + c.c) / 3;
+    pv += tp * Math.max(1, c.v); vv += Math.max(1, c.v);
+  }
+  const microVwap = pv / vv;
+
+  // 3. 1D Constant-Velocity Kalman Filter for Price & Kinematics (Vel, Acc)
+  let x = closes[0], v = 0, P00 = 1e-4, P11 = 1e-5;
+  const Q_pos = (sigma1m * lastPrice) ** 2 * 0.25;
+  const Q_vel = (sigma1m * lastPrice) ** 2 * 0.08;
+  const R_obs = (sigma1m * lastPrice) ** 2 * 0.9;
+  let prevV = 0;
+  for (let i = 1; i < n; i++) {
+    const xPred = x + v;
+    P00 += P11 + Q_pos;
+    P11 += Q_vel;
+    const K0 = P00 / (P00 + R_obs);
+    const K1 = P11 / (P00 + R_obs);
+    const innov = closes[i] - xPred;
+    prevV = v;
+    x = xPred + K0 * innov;
+    v = v + K1 * innov;
+    P00 *= (1 - K0);
+    P11 *= (1 - K1);
+  }
+  const accel = v - prevV;
+
+  // 4. Ornstein-Uhlenbeck Mean Reversion Parameter (AR(1) on deviation from VWAP)
+  const dev = closes.slice(-40).map(p => (p - microVwap) / microVwap);
+  let num = 0, den = 0;
+  for (let i = 1; i < dev.length; i++) {
+    num += dev[i] * dev[i - 1];
+    den += dev[i - 1] * dev[i - 1];
+  }
+  const phi = den > 1e-12 ? Math.max(0.15, Math.min(0.98, num / den)) : 0.85;
+  const ouTheta = -Math.log(phi); // per minute
+  const ouHalfLifeMin = Math.min(45, Math.log(2) / Math.max(0.015, ouTheta));
+
+  // 5. Hurst Exponent Proxy (Variance Ratio VR(5))
+  let var5 = 0;
+  for (let i = 5; i < closes.length; i++) {
+    const r5 = Math.log(closes[i] / closes[i - 5]);
+    var5 += r5 * r5;
+  }
+  var5 /= Math.max(1, closes.length - 5);
+  const vr = var5 / (5 * var1m);
+  const hurst = Math.max(0.2, Math.min(0.85, 0.5 + 0.22 * Math.log(Math.max(0.25, vr))));
+
+  // 6. VPIN Proxy (Order Flow Toxicity)
+  const recentC = candles.slice(-20);
+  let imbSum = 0, volSum = 0;
+  for (const c of recentC) {
+    imbSum += Math.abs((c.buyVol || 0) - (c.sellVol || 0));
+    volSum += Math.max(1e-6, c.v);
+  }
+  const vpin = Math.min(0.99, imbSum / volSum);
+
+  // 7. Normalized Multi-Disciplinary Features [-2, +2]
+  const zVWAP = (microVwap - lastPrice) / (sigma1m * lastPrice * 2.5);
+  // If Hurst > 0.54 (trending), momentum dominates over mean-reversion
+  const ouRevert = hurst > 0.54 ? (v / (sigma1m * lastPrice)) * 0.9 : Math.tanh(zVWAP);
+
+  const spotDiv = extras.spotDiv ?? Math.tanh(
+    recentC.slice(-5).reduce((a, c) => a + ((c.buyVol || 0) - (c.sellVol || 0)), 0) /
+    Math.max(1, recentC.slice(-5).reduce((a, c) => a + c.v, 0)) * 2.5
+  );
+  const obi = extras.obi ?? 0;
+  const fundingTrap = extras.fundingTrap ?? 0;
+  const hawkes = extras.hawkes ?? Math.tanh(((recentC[recentC.length - 1].v / (volSum / 20)) - 1) * 0.8) * Math.sign(v || 1);
+  const xrplFlow = extras.xrplFlow ?? 0;
+  const btcLead = extras.btcLead ?? 0;
+
+  return {
+    lastPrice, sigma1m, microVwap, kalmanPrice: x, kalmanVel: v, kalmanAcc: accel,
+    ouTheta, ouHalfLifeMin, hurst, vpin,
+    features: { spotDiv, obi, fundingTrap, ouRevert, hawkes, xrplFlow, btcLead }
+  };
+}
+
+function getExtrasFromLiveStreams(basePrice) {
+  // L2 OBI across Kraken + Hyperliquid top 10 levels
+  let bidVol = 0, askVol = 0, maxBidWall = 0, maxAskWall = 0;
+  const sortedBids = [...state.krkBook.bids.entries()].sort((a, b) => b[0] - a[0]).slice(0, 12);
+  const sortedAsks = [...state.krkBook.asks.entries()].sort((a, b) => a[0] - b[0]).slice(0, 12);
+  for (const [, q] of sortedBids) { bidVol += q; if (q > maxBidWall) maxBidWall = q; }
+  for (const [, q] of sortedAsks) { askVol += q; if (q > maxAskWall) maxAskWall = q; }
+  for (const [, q] of state.hlBook.bids.slice(0, 10)) bidVol += q;
+  for (const [, q] of state.hlBook.asks.slice(0, 10)) askVol += q;
+  const obi = (bidVol + askVol) > 0 ? Math.tanh(((bidVol - askVol) / (bidVol + askVol)) * 2.2) : 0;
+
+  // Spot vs Perp CVD 3-minute delta divergence
+  const cutoff = Date.now() - 180000;
+  const sOld = state.spotCvdHist.find(x => x.t >= cutoff)?.v ?? 0;
+  const pOld = state.perpCvdHist.find(x => x.t >= cutoff)?.v ?? 0;
+  const dSpot = state.spotCVD - sOld;
+  const dPerp = state.perpCVD - pOld;
+  const scale = Math.max(1000, Math.abs(dSpot) + Math.abs(dPerp));
+  // Bullish when real spot accumulates vs perp shorts; bearish when perp spikes alone
+  const spotDiv = Math.tanh((dSpot - 0.35 * dPerp) / scale * 2.5);
+
+  // Hyperliquid Funding & OI trap signal
+  const funding8h = state.hlFunding * 8;
+  const oiDelta = state.hlPrevOI > 0 ? (state.hlOI - state.hlPrevOI) / state.hlPrevOI : 0;
+  let fundingTrap = 0;
+  if (funding8h < -0.00012) fundingTrap = Math.min(1.5, Math.abs(funding8h) / 0.00015); // negative short trap -> bullish squeeze
+  else if (funding8h > 0.00025) fundingTrap = -Math.min(1.5, funding8h / 0.0003); // crowded longs -> bearish flush
+  if (oiDelta > 0.004 && state.metrics.kalmanVel < 0 && funding8h <= 0) fundingTrap += 0.35;
+
+  // Hawkes intensity (trades per sec over 10s vs 60s baseline)
+  const now = Date.now();
+  const c10 = state.tradeTimestamps.filter(t => t > now - 10000).length / 10;
+  const c60 = Math.max(0.2, state.tradeTimestamps.filter(t => t > now - 60000).length / 60);
+  const hawkesLambda = c10 / c60;
+  const hawkes = Math.tanh((hawkesLambda - 1) * 0.6) * Math.sign(dSpot + dPerp || 1);
+
+  // Reynolds Number: Momentum Flux / Book Liquidity
+  const depthUSD = Math.max(5000, (bidVol + askVol) * (basePrice || 1));
+  const reynolds = (Math.abs(state.metrics.kalmanVel) / (basePrice || 1) * 1e4) * hawkesLambda / Math.log10(depthUSD);
+
+  return {
+    obi, spotDiv, fundingTrap: Math.tanh(fundingTrap), hawkes,
+    xrplFlow: Math.tanh(state.xrpl.flowBias),
+    btcLead: Math.tanh(state.btcReturn5m / 0.0025),
+    reynolds, hawkesLambda, maxBidWall, maxAskWall, dSpot, dPerp
+  };
+}
+
+function scoreToPrediction(model, H, strike) {
+  const w = state.params.weights;
+  const f = model.features;
+  const rawScore =
+    w.spotDiv * f.spotDiv +
+    w.obi * f.obi +
+    w.fundingTrap * f.fundingTrap +
+    w.ouRevert * f.ouRevert +
+    w.hawkes * f.hawkes +
+    w.xrplFlow * f.xrplFlow +
+    w.btcLead * f.btcLead;
+
+  // Drift in bps over horizon H minutes
+  const expectedRet = rawScore * model.sigma1m * Math.sqrt(H) * 0.85;
+  const targetPrice = model.lastPrice * (1 + expectedRet);
+  const stdH = model.sigma1m * Math.sqrt(H);
+
+  // Binary Kalshi settlement probability using Normal CDF with temperature scaling
+  // Includes CF Benchmarks 60s TWAP variance reduction if H <= 2
+  const twapFactor = H <= 2 ? 0.82 : 1.0;
+  const effStd = Math.max(1e-5, stdH * twapFactor * state.params.temperature);
+  const z = Math.log(targetPrice / Math.max(1e-6, strike)) / effStd;
+  const pYes = Math.max(0.03, Math.min(0.97, normalCDF(z)));
+
+  return { rawScore, expectedRet, targetPrice, stdH, pYes };
+}
+
+function normalCDF(x) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989423 * Math.exp(-x * x / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return x > 0 ? 1 - p : p;
+}
+
+function recomputeEngine() {
+  const candles = state.candles1m;
+  if (candles.length < 20) return;
+
+  const idxPrice = averageValid([state.cbPrice, state.krkPrice, state.hlOracle || state.hlPrice]) || candles[candles.length - 1].c;
+  state.metrics.indexPrice = idxPrice;
+
+  const extras = getExtrasFromLiveStreams(idxPrice);
+  const model = computeModelForSeries(candles, extras);
+  if (!model) return;
+
+  const strike = state.kalshi.manualStrike || state.kalshi.windowOpenStrike || idxPrice;
+  const H = state.horizonMin;
+  const pred = scoreToPrediction(model, H, strike);
+
+  // Build Forecast Path curve & 1σ / 2σ cones for chart plotting
+  const path = [], u1 = [], l1 = [], u2 = [], l2 = [];
+  const steps = H;
+  for (let s = 1; s <= steps; s++) {
+    const frac = 1 - Math.exp(-model.ouTheta * s);
+    const pt = model.lastPrice + (pred.targetPrice - model.lastPrice) * (s / steps * 0.7 + frac * 0.3);
+    const band = model.lastPrice * model.sigma1m * Math.sqrt(s);
+    path.push(pt);
+    u1.push(pt + band); l1.push(pt - band);
+    u2.push(pt + 2 * band); l2.push(pt - 2 * band);
+  }
+
+  // Scalp Entry, Exit, Stop, Estimated Duration
+  const edgeThreshold = 0.14;
+  let verdict = "WAIT / NO EDGE", vCls = "wait";
+  if (pred.rawScore >= edgeThreshold) { verdict = H === 5 ? "SCALP LONG (5m)" : "KALSHI BUY YES (15m)"; vCls = "long"; }
+  else if (pred.rawScore <= -edgeThreshold) { verdict = H === 5 ? "SCALP SHORT (5m)" : "KALSHI BUY NO (15m)"; vCls = "short"; }
+
+  const atr = model.lastPrice * model.sigma1m * Math.sqrt(H);
+  const isLong = pred.rawScore >= 0;
+  const entry = model.lastPrice;
+  const target = isLong ? Math.max(pred.targetPrice, entry + 0.9 * atr) : Math.min(pred.targetPrice, entry - 0.9 * atr);
+  const stop = isLong ? entry - 0.75 * atr : entry + 0.75 * atr;
+
+  // Estimate scalp hold duration from OU half-life & Hawkes decay
+  const estMin = Math.max(1.2, Math.min(H - 0.5, model.ouHalfLifeMin * (extras.hawkesLambda > 1.5 ? 0.65 : 0.95)));
+  const holdText = `${estMin.toFixed(1)}m – ${Math.min(H, estMin * 1.65).toFixed(1)}m`;
+
+  // Plain-language causal synthesis
+  const reasons = [];
+  if (model.features.spotDiv > 0.25) reasons.push("real spot buyers (Coinbase/Kraken) are accumulating faster than perp leverage");
+  else if (model.features.spotDiv < -0.25) reasons.push("perp buyers are chasing without spot support (fakeout/pullback risk)");
+  if (model.features.obi > 0.25) reasons.push("L2 order-book bids heavily outweigh nearby asks");
+  else if (model.features.obi < -0.25) reasons.push("overhead ask walls are absorbing buys on the L2 order book");
+  if (model.features.fundingTrap > 0.25) reasons.push(`Hyperliquid funding is negative (${(state.hlFunding * 800).toFixed(3)}%/8h), setting up a short-squeeze fuel stack`);
+  else if (model.features.fundingTrap < -0.25) reasons.push("crowded positive funding risks a long liquidation flush");
+  if (Math.abs(state.xrpl.flowBias) > 0.2) reasons.push(state.xrpl.flowBias > 0 ? "XRPL whales are withdrawing from exchanges to custody" : "XRPL whales are moving inventory onto exchanges");
+  if (!reasons.length) reasons.push("order flow and order-book liquidity are balanced near Micro-VWAP; waiting for asymmetric pressure");
+
+  const flowRegime = extras.reynolds > state.params.reynoldsBreakoutThresh ? "TURBULENT BREAKOUT" : "LAMINAR MEAN-REV";
+  const narrative = `<b>Plain-Language Read:</b> Market flow is currently in a <b>${flowRegime}</b> state (Hurst ${model.hurst.toFixed(2)}). Currently, ${reasons.join(", and ")}. ` +
+    (vCls === "wait"
+      ? `No clean edge yet—wait for Spot CVD or L2 imbalance to break symmetry before entering.`
+      : `Expect price to gravitate toward <b>$${target.toFixed(4)}</b> over approximately <b>${holdText}</b>, giving Kalshi YES a fair probability of <b>${(pred.pYes * 100).toFixed(1)}%</b> vs strike <b>$${strike.toFixed(4)}</b>.`);
+
+  Object.assign(state.metrics, model, {
+    reynolds: extras.reynolds, hawkesLambda: extras.hawkesLambda,
+    maxBidWall: extras.maxBidWall, maxAskWall: extras.maxAskWall,
+    dSpot: extras.dSpot, dPerp: extras.dPerp,
+    forecastPath: path, upper1: u1, lower1: l1, upper2: u2, lower2: l2,
+    pYes: pred.pYes, verdict, vCls, entry, target, stop, holdText, narrative,
+    targetPrice: pred.targetPrice, flowRegime, strike
+  });
+
+  detectFlipsAndAnomalies(model, extras, pred);
+  resolvePendingAccuracy(idxPrice);
+  autoLogMinuteTick();
+  renderAll();
+}
+
+function detectFlipsAndAnomalies(model, extras, pred) {
+  // 1. Bearish Absorption Flip
+  if (extras.dPerp > 15000 && extras.dSpot <= 0 && extras.obi < -0.3) {
+    pushAnomaly("FLIP ALERT: Bearish Absorption", "Perp CVD is spiking while Spot CVD is flat and overhead L2 ask walls are absorbing buys. Expect a sharp downward flip within 1–3m.", "bear");
+  }
+  // 2. Negative Saturated Short Trap Ignition
+  if (state.hlFunding * 8 < -0.00015 && extras.dSpot > 10000 && extras.obi > 0.25) {
+    pushAnomaly("FLIP ALERT: Short Squeeze Ignition", "Negative funding shorts are trapped while real spot bids lift the offer. Expect rapid upward cascade.", "bull");
+  }
+  // 3. Final-60s Kalshi CF Benchmarks TWAP Pin
+  const secLeft15 = 900 - (Math.floor(Date.now() / 1000) % 900);
+  if (secLeft15 <= 60 && Math.abs(model.lastPrice - state.metrics.strike) / model.lastPrice < 0.0012) {
+    pushAnomaly("SETTLEMENT ANOMALY: Final-60s CF RTI Pin", `Within final ${secLeft15}s of KXXRP15M settlement. Spot price is pinned near strike; 60s TWAP dampens sudden wick reversals.`, "anom");
+  }
+}
+
+let lastAnomalyKey = "";
+function pushAnomaly(title, desc, cls) {
+  const key = title + Math.floor(Date.now() / 45000);
+  if (key === lastAnomalyKey) return;
+  lastAnomalyKey = key;
+  state.anomalies.unshift({ t: new Date().toLocaleTimeString(), title, desc, cls });
+  if (state.anomalies.length > 20) state.anomalies.pop();
+  const box = document.getElementById("anomalyFeed");
+  box.innerHTML = state.anomalies.map(a =>
+    `<div class="feed-item ${a.cls}"><b>[${a.t}] ${a.title}</b><br><span style="color:var(--muted);">${a.desc}</span></div>`
+  ).join("");
+}
+
+/* ============================================================================
+ * 6. RUNNING ACCURACY LOG & WALK-FORWARD BASELINE + SELF-MONITORING AUDIT
+ * ==========================================================================*/
+function runWalkForwardBaseline() {
+  // Strictly causal out-of-sample walk-forward across historical 1m candles
+  const candles = state.candles1m;
+  if (candles.length < 70) return;
+  // Clear prior walk-forward seeds but keep LIVE rows
+  state.accuracyLog = state.accuracyLog.filter(r => r.mode === "LIVE");
+  const H = 5;
+  for (let i = 45; i < candles.length - H; i += 5) {
+    const slice = candles.slice(0, i + 1);
+    const m = computeModelForSeries(slice, {});
+    if (!m) continue;
+    const strike = slice[slice.length - 1].o;
+    const pred = scoreToPrediction(m, H, strike);
+    const actual = candles[i + H].c;
+    const predDir = pred.targetPrice >= m.lastPrice ? 1 : -1;
+    const actDir = actual >= m.lastPrice ? 1 : -1;
+    const yBin = actual > strike ? 1 : 0;
+    state.accuracyLog.push({
+      id: "WF-" + candles[i].t,
+      ts: candles[i].t,
+      resolveTs: candles[i + H].t,
+      mode: "WALK-FWD",
+      horizon: H,
+      start: m.lastPrice,
+      strike,
+      predPrice: pred.targetPrice,
+      pYes: pred.pYes,
+      signal: predDir > 0 ? "UP" : "DOWN",
+      actual,
+      errBps: ((actual - pred.targetPrice) / actual) * 10000,
+      brier: (pred.pYes - yBin) ** 2,
+      hit: predDir === actDir,
+      resolved: true,
+      features: m.features
+    });
+  }
+  saveJSON("xrp_acc_log_v1", state.accuracyLog.slice(-150));
+  runSelfAudit(false);
+}
+
+function snapshotLiveForecast(manual = false) {
+  const m = state.metrics;
+  if (!m.indexPrice || !m.targetPrice) return;
+  const now = Date.now();
+  const H = state.horizonMin;
+  state.accuracyLog.unshift({
+    id: "LIVE-" + now,
+    ts: now,
+    resolveTs: now + H * 60000,
+    mode: "LIVE",
+    horizon: H,
+    start: m.lastPrice,
+    strike: m.strike,
+    predPrice: m.targetPrice,
+    pYes: m.pYes,
+    signal: m.targetPrice >= m.lastPrice ? "UP" : "DOWN",
+    actual: null,
+    errBps: null,
+    brier: null,
+    hit: null,
+    resolved: false,
+    features: { ...m.features }
+  });
+  if (state.accuracyLog.length > 200) state.accuracyLog.pop();
+  saveJSON("xrp_acc_log_v1", state.accuracyLog);
+  if (manual) renderAccuracyTable();
+}
+
+function autoLogMinuteTick() {
+  const curMin = Math.floor(Date.now() / 60000);
+  if (curMin > state.lastLiveLogMinute && (curMin % 5 === 0 || state.lastLiveLogMinute === 0)) {
+    state.lastLiveLogMinute = curMin;
+    snapshotLiveForecast(false);
+  }
+}
+
+function resolvePendingAccuracy(currentPrice) {
+  const now = Date.now();
+  let changed = false;
+  for (const row of state.accuracyLog) {
+    if (!row.resolved && now >= row.resolveTs) {
+      row.actual = currentPrice;
+      const predDir = row.predPrice >= row.start ? 1 : -1;
+      const actDir = currentPrice >= row.start ? 1 : -1;
+      const yBin = currentPrice > row.strike ? 1 : 0;
+      row.errBps = ((currentPrice - row.predPrice) / currentPrice) * 10000;
+      row.brier = (row.pYes - yBin) ** 2;
+      row.hit = predDir === actDir;
+      row.resolved = true;
+      changed = true;
+    }
+  }
+  if (changed) {
+    saveJSON("xrp_acc_log_v1", state.accuracyLog);
+    runSelfAudit(false);
+  }
+}
+
+/* ============================================================================
+ * 7. SELF-MONITORING CALIBRATION & HUMAN-IN-THE-LOOP GOVERNANCE
+ * ==========================================================================*/
+function computeDiagnostics() {
+  const resolved = state.accuracyLog.filter(r => r.resolved);
+  if (!resolved.length) return null;
+  const recent = resolved.slice(0, 40);
+  const hits = recent.filter(r => r.hit).length;
+  const hitRate = hits / recent.length;
+  const brier = recent.reduce((a, r) => a + r.brier, 0) / recent.length;
+  const mae = recent.reduce((a, r) => a + Math.abs(r.errBps), 0) / recent.length;
+
+  // Expected Calibration Error (4 probability bins)
+  let ece = 0;
+  for (let b = 0; b < 4; b++) {
+    const lo = b * 0.25, hi = (b + 1) * 0.25;
+    const grp = recent.filter(r => r.pYes >= lo && r.pYes < hi);
+    if (grp.length) {
+      const avgP = grp.reduce((a, r) => a + r.pYes, 0) / grp.length;
+      const avgY = grp.reduce((a, r) => a + (r.actual > r.strike ? 1 : 0), 0) / grp.length;
+      ece += (grp.length / recent.length) * Math.abs(avgP - avgY);
+    }
+  }
+
+  // Empirical correlation of each factor against actual return
+  const corrs = {};
+  const rets = recent.map(r => (r.actual - r.start) / r.start);
+  const meanY = rets.reduce((a, b) => a + b, 0) / rets.length;
+  for (const k of Object.keys(state.params.weights)) {
+    const xs = recent.map(r => (r.features && r.features[k]) || 0);
+    const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
+    let num = 0, dx2 = 0, dy2 = 0;
+    for (let i = 0; i < recent.length; i++) {
+      num += (xs[i] - meanX) * (rets[i] - meanY);
+      dx2 += (xs[i] - meanX) ** 2;
+      dy2 += (rets[i] - meanY) ** 2;
+    }
+    corrs[k] = (dx2 > 1e-9 && dy2 > 1e-9) ? num / Math.sqrt(dx2 * dy2) : 0;
+  }
+
+  return { n: recent.length, hitRate, brier, mae, ece, corrs };
+}
+
+function runSelfAudit(forceDisplay = false) {
+  const diag = computeDiagnostics();
+  if (!diag) return;
+  renderGovernanceTables(diag);
+
+  const needsCal = diag.hitRate < 0.55 || diag.brier > 0.245 || diag.ece > 0.085 || forceDisplay;
+  if (!needsCal) return;
+
+  // Compute mathematically bounded weight & temperature proposal
+  const oldW = { ...state.params.weights };
+  const newW = {};
+  let sumW = 0;
+  for (const k of Object.keys(oldW)) {
+    const corr = diag.corrs[k] || 0;
+    // Shift weight toward empirically positive predictors, damp negative ones
+    const adj = Math.max(0.03, oldW[k] * (1 + 0.45 * corr));
+    newW[k] = adj;
+    sumW += adj;
+  }
+  for (const k of Object.keys(newW)) newW[k] = +(newW[k] / sumW).toFixed(3);
+
+  const newTemp = +(Math.max(0.75, Math.min(1.6, state.params.temperature + (diag.ece > 0.08 ? 0.12 : -0.05)))).toFixed(2);
+
+  // Check if meaningful change exists
+  const diffs = Object.keys(oldW)
+    .filter(k => Math.abs(oldW[k] - newW[k]) >= 0.01)
+    .map(k => `${k}: ${oldW[k].toFixed(2)}→${newW[k].toFixed(2)}`);
+  if (Math.abs(newTemp - state.params.temperature) >= 0.02) {
+    diffs.push(`Temp: ${state.params.temperature}→${newTemp}`);
+  }
+
+  if (!diffs.length && !forceDisplay) return;
+
+  const reasonText = `Rolling audit over ${diag.n} resolved windows detected Hit Rate ${(diag.hitRate * 100).toFixed(1)}%, Brier ${diag.brier.toFixed(3)}, ECE ${(diag.ece * 100).toFixed(1)}%. Empirical feature correlation suggests re-balancing factor weights & probability temperature.`;
+
+  state.pendingProposal = { weights: newW, temperature: newTemp, reason: reasonText, diffs: diffs.join(" | ") || "Minor temperature stabilization" };
+  document.getElementById("calReason").textContent = reasonText;
+  document.getElementById("calDiff").textContent = "PROPOSED DIFF: " + state.pendingProposal.diffs;
+  document.getElementById("calBanner").classList.add("show");
+}
+
+function approveCalibration() {
+  if (!state.pendingProposal) return;
+  state.params.weights = state.pendingProposal.weights;
+  state.params.temperature = state.pendingProposal.temperature;
+  saveJSON("xrp_params_v1", state.params);
+  state.govLog.unshift({
+    t: new Date().toLocaleString(),
+    decision: "APPROVED BY HUMAN",
+    detail: state.pendingProposal.diffs
+  });
+  saveJSON("xrp_gov_log_v1", state.govLog.slice(0, 50));
+  state.pendingProposal = null;
+  document.getElementById("calBanner").classList.remove("show");
+  recomputeEngine();
+  renderGovernanceTables(computeDiagnostics());
+}
+
+function rejectCalibration() {
+  if (!state.pendingProposal) return;
+  state.govLog.unshift({
+    t: new Date().toLocaleString(),
+    decision: "REJECTED BY HUMAN",
+    detail: "Kept current weights (" + state.pendingProposal.diffs + ")"
+  });
+  saveJSON("xrp_gov_log_v1", state.govLog.slice(0, 50));
+  state.pendingProposal = null;
+  document.getElementById("calBanner").classList.remove("show");
+  renderGovernanceTables(computeDiagnostics());
+}
+
+/* ============================================================================
+ * 8. INTERACTIVE HIGH-DPI CANVAS CHART WITH FORECAST CONE
+ * ==========================================================================*/
+
+/* ============================================================================
+ * CANDLE READER: pattern identification + plain-language translation
+ * ==========================================================================*/
+let readerTf = 1, readerTimer = null;
+
+function readerCandles(tf) {
+  if (tf === 1) return state.candles1m.slice(-120).map(c => ({ ...c }));
+  const map = new Map();
+  for (const c of state.candles1m) {
+    const b = Math.floor(c.t / 300000) * 300000;
+    const cur = map.get(b);
+    if (!cur) map.set(b, { ...c, t: b });
+    else { cur.h = Math.max(cur.h, c.h); cur.l = Math.min(cur.l, c.l); cur.c = c.c; cur.v = (cur.v || 0) + (c.v || 0); }
+  }
+  return [...map.values()].slice(-60);
+}
+
+function candleAnatomy(c, atr) {
+  const range = Math.max(c.h - c.l, 1e-9);
+  const body = Math.abs(c.c - c.o);
+  const top = Math.max(c.o, c.c), bot = Math.min(c.o, c.c);
+  return {
+    range, body, up: c.c >= c.o,
+    bodyPct: body / range, upPct: (c.h - top) / range, loPct: (bot - c.l) / range,
+    sizeVsAtr: atr > 0 ? range / atr : 1
+  };
+}
+
+function trendBefore(cs, i, n = 6) {
+  if (i < n) return 0;
+  const a = cs[i - n].c, b = cs[i - 1].c;
+  const atr = avgRange(cs, i, 14) || 1e-9;
+  const move = (b - a) / atr;
+  return move > 1.5 ? 1 : move < -1.5 ? -1 : 0;   // 1 up, -1 down, 0 sideways
+}
+function avgRange(cs, i, n) {
+  const sl = cs.slice(Math.max(0, i - n), i);
+  if (!sl.length) return 0;
+  return sl.reduce((s, c) => s + (c.h - c.l), 0) / sl.length;
+}
+
+function detectPatterns(cs, i) {
+  const out = [];
+  const c = cs[i]; if (!c) return out;
+  const atr = avgRange(cs, i, 14) || (c.h - c.l) || 1e-9;
+  const A = candleAnatomy(c, atr);
+  const tr = trendBefore(cs, i);
+  const push = (name, bias, plain, strength) => out.push({ name, bias, plain, strength, i });
+  if (A.range < atr * 0.05) return out;
+
+  // ---- 3-candle patterns
+  if (i >= 2) {
+    const c1 = cs[i - 2], c2 = cs[i - 1];
+    const a1 = candleAnatomy(c1, atr), a2 = candleAnatomy(c2, atr);
+    const mid1 = (c1.o + c1.c) / 2;
+    if (!a1.up && a1.bodyPct > 0.5 && a2.bodyPct < 0.3 && A.up && A.bodyPct > 0.4 && c.c > mid1 && tr <= 0)
+      push("Morning Star", "bull", "Sellers pushed hard, then stalled into an indecisive candle, and buyers just took back more than half the drop. Selling pressure looks exhausted; a bounce is more likely than not.", 3);
+    if (a1.up && a1.bodyPct > 0.5 && a2.bodyPct < 0.3 && !A.up && A.bodyPct > 0.4 && c.c < mid1 && tr >= 0)
+      push("Evening Star", "bear", "Buyers pushed hard, hesitated, and sellers have now erased more than half of the rally. Buying momentum looks spent; a pullback is more likely.", 3);
+    if ([c1, c2, c].every(x => x.c > x.o) && c2.c > c1.c && c.c > c2.c && c2.o > c1.o && c.o > c2.o && a1.bodyPct > 0.5 && a2.bodyPct > 0.5 && A.bodyPct > 0.5)
+      push("Three White Soldiers", "bull", "Three consecutive strong green candles, each closing higher than the last. Steady, committed buying, not a one-off spike.", 3);
+    if ([c1, c2, c].every(x => x.c < x.o) && c2.c < c1.c && c.c < c2.c && c2.o < c1.o && c.o < c2.o && a1.bodyPct > 0.5 && a2.bodyPct > 0.5 && A.bodyPct > 0.5)
+      push("Three Black Crows", "bear", "Three consecutive strong red candles, each closing lower than the last. Persistent, committed selling.", 3);
+  }
+
+  // ---- 2-candle patterns
+  if (i >= 1) {
+    const p = cs[i - 1], P = candleAnatomy(p, atr);
+    const pTop = Math.max(p.o, p.c), pBot = Math.min(p.o, p.c);
+    const cTop = Math.max(c.o, c.c), cBot = Math.min(c.o, c.c);
+    if (!P.up && A.up && cTop >= pTop && cBot <= pBot && A.body > P.body * 1.05)
+      push("Bullish Engulfing", "bull", "A green candle fully swallowed the prior red one. Buyers overpowered sellers in a single bar; strongest after a decline.", tr < 0 ? 3 : 2);
+    if (P.up && !A.up && cTop >= pTop && cBot <= pBot && A.body > P.body * 1.05)
+      push("Bearish Engulfing", "bear", "A red candle fully swallowed the prior green one. Sellers overpowered buyers in a single bar; strongest after a rally.", tr > 0 ? 3 : 2);
+    if (P.bodyPct > 0.5 && P.sizeVsAtr > 0.9 && A.body < P.body * 0.5 && cTop <= pTop && cBot >= pBot) {
+      if (!P.up) push("Bullish Harami", "bull", "A small candle is contained inside a large red one. The selling push lost steam; possible pause or reversal up.", tr < 0 ? 2 : 1);
+      else push("Bearish Harami", "bear", "A small candle is contained inside a large green one. The buying push lost steam; possible pause or reversal down.", tr > 0 ? 2 : 1);
+    }
+    if (!P.up && A.up && P.bodyPct > 0.5 && c.o < p.c && c.c > (p.o + p.c) / 2 && c.c < p.o)
+      push("Piercing Line", "bull", "After a red candle, price gapped lower but buyers drove it back above the midpoint of that candle. Dip-buyers stepped in.", 2);
+    if (P.up && !A.up && P.bodyPct > 0.5 && c.o > p.c && c.c < (p.o + p.c) / 2 && c.c > p.o)
+      push("Dark Cloud Cover", "bear", "After a green candle, price gapped higher but sellers dragged it back below the midpoint. Rally-sellers stepped in.", 2);
+    const tol = atr * 0.1;
+    if (Math.abs(c.h - p.h) < tol && P.up && !A.up && tr >= 0)
+      push("Tweezer Top", "bear", "Two candles topped out at nearly the same price and turned from green to red. That high is acting as resistance.", 2);
+    if (Math.abs(c.l - p.l) < tol && !P.up && A.up && tr <= 0)
+      push("Tweezer Bottom", "bull", "Two candles bottomed at nearly the same price and turned from red to green. That low is acting as support.", 2);
+  }
+
+  // ---- 1-candle patterns
+  if (A.bodyPct <= 0.1) {
+    if (A.loPct >= 0.6 && A.upPct <= 0.15) push("Dragonfly Doji", "bull", "Price dropped sharply but buyers pushed it all the way back to the open. Strong rejection of lower prices.", tr < 0 ? 2 : 1);
+    else if (A.upPct >= 0.6 && A.loPct <= 0.15) push("Gravestone Doji", "bear", "Price spiked up but sellers pushed it all the way back to the open. Strong rejection of higher prices.", tr > 0 ? 2 : 1);
+    else if (A.upPct > 0.3 && A.loPct > 0.3) push("Long-Legged Doji", "neutral", "Wild swings both ways but the close equals the open. Buyers and sellers are in a stalemate; a big move often follows once it breaks.", 1);
+    else push("Doji", "neutral", "Open and close are almost identical. Indecision: neither side won this candle.", 1);
+  } else if (A.bodyPct >= 0.9) {
+    push(A.up ? "Bullish Marubozu" : "Bearish Marubozu", A.up ? "bull" : "bear",
+      A.up ? "A full-bodied green candle with virtually no wicks: buyers controlled it from open to close."
+           : "A full-bodied red candle with virtually no wicks: sellers controlled it from open to close.", 2);
+  } else if (A.bodyPct <= 0.35 && A.loPct >= 2 * A.bodyPct && A.loPct >= 0.55 && A.upPct <= 0.15) {
+    if (tr < 0) push("Hammer", "bull", "A long lower wick with a small body near the top after a decline. Sellers pushed price down but buyers rejected it. Possible bottom.", 2);
+    else if (tr > 0) push("Hanging Man", "bear", "Hammer shape but after a rally. Sellers showed up intra-bar, a warning that buyers may be tiring (needs a red follow-up to confirm).", 1);
+  } else if (A.bodyPct <= 0.35 && A.upPct >= 2 * A.bodyPct && A.upPct >= 0.55 && A.loPct <= 0.15) {
+    if (tr > 0) push("Shooting Star", "bear", "A long upper wick with a small body near the bottom after a rally. Buyers pushed up but sellers slammed it back. Possible top.", 2);
+    else if (tr < 0) push("Inverted Hammer", "bull", "Long upper wick after a decline. Buyers tested higher prices; needs a green follow-up to confirm a bottom.", 1);
+  } else if (A.bodyPct <= 0.3 && A.upPct >= A.bodyPct && A.loPct >= A.bodyPct) {
+    push("Spinning Top", "neutral", "Small body with wicks on both sides. Tug-of-war with no clear winner; momentum is fading.", 1);
+  }
+  return out.sort((x, y) => y.strength - x.strength);
+}
+
+function describeCandle(c, cs, i) {
+  const atr = avgRange(cs, i, 14) || (c.h - c.l) || 1e-9;
+  const A = candleAnatomy(c, atr);
+  const size = A.sizeVsAtr > 1.8 ? "very large" : A.sizeVsAtr > 1.2 ? "larger-than-normal" : A.sizeVsAtr < 0.5 ? "tiny" : A.sizeVsAtr < 0.8 ? "small" : "average-sized";
+  const dir = A.bodyPct < 0.1 ? "flat (open ≈ close)" : A.up ? "green (buyers won)" : "red (sellers won)";
+  const closePos = (c.c - c.l) / A.range;
+  const where = closePos > 0.8 ? "closed near the high (buyers in control)" : closePos < 0.2 ? "closed near the low (sellers in control)" : "closed mid-range (no clear control)";
+  const wicks = A.loPct > 0.4 ? "a long lower wick shows dips were bought" : A.upPct > 0.4 ? "a long upper wick shows rallies were sold" : "wicks are modest";
+  return { A, atr, size, dir, where, wicks };
+}
+
+function overallRead(cs) {
+  const n = cs.length, i = n - 1;
+  const tr = trendBefore(cs, i + 1 > n ? i : i, 8);
+  const last = cs[i];
+  const d = describeCandle(last, cs, i);
+  const volAvg = cs.slice(-21, -1).reduce((s, c) => s + (c.v || 0), 0) / Math.max(1, cs.slice(-21, -1).length);
+  const vr = volAvg > 0 ? (last.v || 0) / volAvg : 1;
+  const pats = [];
+  for (let k = Math.max(0, i - 2); k <= i; k++) pats.push(...detectPatterns(cs, k));
+  const bull = pats.filter(p => p.bias === "bull").reduce((s, p) => s + p.strength, 0);
+  const bear = pats.filter(p => p.bias === "bear").reduce((s, p) => s + p.strength, 0);
+  const lean = bull - bear >= 2 ? "bull" : bear - bull >= 2 ? "bear" : "neutral";
+  const trendTxt = tr > 0 ? "an up-move" : tr < 0 ? "a down-move" : "sideways chop";
+  let t = `Context: the prior candles show ${trendTxt}. The latest candle is ${d.size} and ${d.dir}; it ${d.where}, and ${d.wicks}.`;
+  if (volAvg > 0) t += ` Volume is ${vr > 1.5 ? "well above" : vr < 0.6 ? "well below" : "near"} the recent average (${vr.toFixed(1)}×)${vr > 1.5 ? ", so this move has real participation" : vr < 0.6 ? ", so treat this move with suspicion" : ""}.`;
+  if (lean === "bull") t += " Net read of the last 3 candles: patterns lean BULLISH.";
+  else if (lean === "bear") t += " Net read of the last 3 candles: patterns lean BEARISH.";
+  else t += " Net read of the last 3 candles: no decisive edge from patterns alone.";
+  return { text: t, lean, pats };
+}
+
+function miniGlyph(c, lo, hi) {
+  const H = 30, W = 12, r = Math.max(hi - lo, 1e-9);
+  const y = p => (H - ((p - lo) / r) * (H - 2) - 1).toFixed(1);
+  const col = c.c >= c.o ? "#16c784" : "#ea3943";
+  const yt = Math.min(y(c.o), y(c.c)), yb = Math.max(y(c.o), y(c.c));
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><line x1="6" x2="6" y1="${y(c.h)}" y2="${y(c.l)}" stroke="${col}" stroke-width="1.5"/><rect x="2" width="8" y="${yt}" height="${Math.max(1.5, yb - yt).toFixed(1)}" fill="${col}"/></svg>`;
+}
+
+function fmtP(x) { return "$" + Number(x).toFixed(4); }
+function chipHtml(p) { return `<span class="cr-chip ${p.bias}">${p.bias === "bull" ? "▲" : p.bias === "bear" ? "▼" : "◆"} ${p.name}</span>`; }
+
+function renderCandleReader() {
+  const el = document.getElementById("crContent");
+  const cs = readerCandles(readerTf);
+  document.getElementById("crTf1").classList.toggle("active", readerTf === 1);
+  document.getElementById("crTf5").classList.toggle("active", readerTf === 5);
+  if (cs.length < 8) {
+    el.innerHTML = `<div class="cr-read">Waiting for candle data… (${cs.length} candles loaded). Needs at least 8 candles; live Coinbase/Kraken candles populate within a few seconds of connecting.</div>`;
+    return;
+  }
+  const i = cs.length - 1, last = cs[i];
+  const d = describeCandle(last, cs, i);
+  const read = overallRead(cs);
+  const latestPats = detectPatterns(cs, i);
+  const leanTxt = { bull: "BULLISH LEAN", bear: "BEARISH LEAN", neutral: "NEUTRAL / NO EDGE" }[read.lean];
+  const leanCol = { bull: "var(--green)", bear: "var(--red)", neutral: "var(--amber)" }[read.lean];
+
+  let h = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+    <div style="font-size:11px;color:var(--muted);">Reading the <b>${readerTf}m</b> XRP-USD candle series live (${cs.length} candles). Last candle is still forming.</div>
+    <div style="font-weight:800;color:${leanCol};font-size:13px;">${leanTxt}</div></div>`;
+
+  h += `<div class="cr-grid">
+    <div class="cr-stat"><div class="k">Open</div><div class="v">${fmtP(last.o)}</div></div>
+    <div class="cr-stat"><div class="k">High</div><div class="v">${fmtP(last.h)}</div></div>
+    <div class="cr-stat"><div class="k">Low</div><div class="v">${fmtP(last.l)}</div></div>
+    <div class="cr-stat"><div class="k">Close / Now</div><div class="v" style="color:${last.c >= last.o ? "var(--green)" : "var(--red)"}">${fmtP(last.c)}</div></div>
+    <div class="cr-stat"><div class="k">Body of range</div><div class="v">${(d.A.bodyPct * 100).toFixed(0)}%</div></div>
+    <div class="cr-stat"><div class="k">Upper / Lower wick</div><div class="v">${(d.A.upPct * 100).toFixed(0)}% / ${(d.A.loPct * 100).toFixed(0)}%</div></div>
+    <div class="cr-stat"><div class="k">Size vs avg range</div><div class="v">${d.A.sizeVsAtr.toFixed(2)}×</div></div>
+  </div>`;
+
+  h += `<div class="cr-h">Plain-language translation</div><div class="cr-read" style="border-left-color:${leanCol}">${read.text}</div>`;
+
+  h += `<div class="cr-h">Pattern(s) on the latest candle</div>`;
+  if (!latestPats.length) h += `<div class="cr-pat"><b>No classic pattern</b><div>This candle doesn't match a recognized formation. That is normal; most candles are just ordinary price movement.</div></div>`;
+  else h += latestPats.map(p => `<div class="cr-pat">${chipHtml(p)}<div>${p.plain}</div></div>`).join("");
+
+  h += `<div class="cr-h">Recent candles, identified &amp; translated (newest first)</div>
+    <div style="overflow-x:auto"><table class="cr-table"><thead><tr><th>Time</th><th></th><th>O → C</th><th>Pattern</th><th>Translation</th></tr></thead><tbody>`;
+  const lo = Math.min(...cs.slice(-14).map(c => c.l)), hi = Math.max(...cs.slice(-14).map(c => c.h));
+  for (let k = i; k >= Math.max(0, i - 13); k--) {
+    const c = cs[k], pats = detectPatterns(cs, k), dd = describeCandle(c, cs, k);
+    const tm = new Date(c.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const trans = pats.length ? pats[0].plain : `${dd.size[0].toUpperCase() + dd.size.slice(1)} ${dd.dir.split(" (")[0]} candle; ${dd.where}.`;
+    h += `<tr style="border-top:1px solid var(--border)"><td style="font-family:var(--mono);white-space:nowrap">${tm}${k === i ? " ●" : ""}</td>
+      <td>${miniGlyph(c, lo, hi)}</td>
+      <td style="font-family:var(--mono);white-space:nowrap">${Number(c.o).toFixed(4)} → ${Number(c.c).toFixed(4)}</td>
+      <td>${pats.length ? pats.slice(0, 2).map(chipHtml).join("") : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="color:var(--muted);font-size:11px;min-width:260px">${trans}</td></tr>`;
+  }
+  h += `</tbody></table></div>
+    <div class="cr-note">Candle patterns are probabilistic heuristics, not guarantees. On 1m XRP data they are noisy; they carry more weight at key levels, on high volume, and when other panels (CVD, order-book imbalance, Hurst) agree. Not financial advice.</div>`;
+  el.innerHTML = h;
+}
+
+function openCandleReader() {
+  readerTf = state.timeframeMin === 5 ? 5 : 1;
+  document.getElementById("crModal").classList.add("open");
+  renderCandleReader();
+  clearInterval(readerTimer);
+  readerTimer = setInterval(renderCandleReader, 2000);
+}
+function closeCandleReader() {
+  document.getElementById("crModal").classList.remove("open");
+  clearInterval(readerTimer); readerTimer = null;
+}
+function setReaderTf(m) { readerTf = m; renderCandleReader(); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeCandleReader(); });
+
+function getChartCandles() {
+  if (state.timeframeMin === 1) return state.candles1m.slice(-80);
+  // Aggregate 1m into 5m candles
+  const map = new Map();
+  for (const c of state.candles1m) {
+    const b = Math.floor(c.t / 300000) * 300000;
+    const cur = map.get(b);
+    if (!cur) map.set(b, { ...c, t: b });
+    else {
+      cur.h = Math.max(cur.h, c.h); cur.l = Math.min(cur.l, c.l);
+      cur.c = c.c; cur.v += c.v;
+    }
+  }
+  return [...map.values()].slice(-65);
+}
+
+function drawChart() {
+  const canvas = document.getElementById("mainChart");
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const candles = getChartCandles();
+  if (candles.length < 5) {
+    ctx.fillStyle = "#8aa0c2"; ctx.font = "13px sans-serif";
+    ctx.fillText("Connecting to Coinbase & Kraken live streams...", 24, H / 2);
+    return;
+  }
+
+  const m = state.metrics;
+  const fSteps = (m.forecastPath || []).length || 5;
+  const padL = 14, padR = 66, padT = 32, padB = 26;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const totalSlots = candles.length + fSteps + 1;
+  const slotW = plotW / totalSlots;
+
+  // Y-axis bounds including forecast cones & strike
+  let minP = Infinity, maxP = -Infinity;
+  for (const c of candles) { minP = Math.min(minP, c.l); maxP = Math.max(maxP, c.h); }
+  for (const p of (m.upper2 || [])) maxP = Math.max(maxP, p);
+  for (const p of (m.lower2 || [])) minP = Math.min(minP, p);
+  if (m.strike && Math.abs(m.strike - m.lastPrice) / m.lastPrice < 0.03) {
+    minP = Math.min(minP, m.strike); maxP = Math.max(maxP, m.strike);
+  }
+  const padY = (maxP - minP) * 0.12 || 0.001;
+  minP -= padY; maxP += padY;
+  const yOf = p => padT + (1 - (p - minP) / (maxP - minP)) * plotH;
+  const xOf = idx => padL + (idx + 0.5) * slotW;
+
+  // Grid lines
+  ctx.strokeStyle = "rgba(30, 45, 69, 0.55)";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#8aa0c2";
+  ctx.font = "10px monospace";
+  for (let g = 0; g <= 5; g++) {
+    const p = minP + (g / 5) * (maxP - minP);
+    const y = yOf(p);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText("$" + p.toFixed(4), W - padR + 6, y + 3);
+  }
+
+  // Shaded FORECAST ZONE
+  const forecastStartX = xOf(candles.length - 0.5);
+  ctx.fillStyle = "rgba(167, 139, 250, 0.09)";
+  ctx.fillRect(forecastStartX, padT, W - padR - forecastStartX, plotH);
+  ctx.strokeStyle = "rgba(167, 139, 250, 0.65)";
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(forecastStartX, padT); ctx.lineTo(forecastStartX, H - padB); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#c4b5fd";
+  ctx.font = "bold 11px monospace";
+  ctx.fillText(`FORECAST (${state.horizonMin}m)`, forecastStartX + 6, padT + 14);
+
+  // Candlesticks
+  const cw = Math.max(2, slotW * 0.65);
+  candles.forEach((c, i) => {
+    const x = xOf(i);
+    const up = c.c >= c.o;
+    ctx.strokeStyle = up ? "#16c784" : "#ea3943";
+    ctx.fillStyle = up ? "#16c784" : "#ea3943";
+    ctx.beginPath(); ctx.moveTo(x, yOf(c.h)); ctx.lineTo(x, yOf(c.l)); ctx.stroke();
+    const top = yOf(Math.max(c.o, c.c)), bot = yOf(Math.min(c.o, c.c));
+    ctx.fillRect(x - cw / 2, top, cw, Math.max(1.5, bot - top));
+  });
+
+  // Micro-VWAP & Kalman Line
+  if (m.microVwap) {
+    ctx.strokeStyle = "#f5b041"; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(padL, yOf(m.microVwap)); ctx.lineTo(forecastStartX, yOf(m.microVwap)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Kalshi Strike Line
+  if (m.strike) {
+    const sy = yOf(m.strike);
+    ctx.strokeStyle = "#f472b6"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(padL, sy); ctx.lineTo(W - padR, sy); ctx.stroke();
+    ctx.fillStyle = "#f472b6"; ctx.font = "bold 10px monospace";
+    ctx.fillText(`STRIKE $${m.strike.toFixed(4)}`, padL + 8, sy - 5);
+  }
+
+  // Forecast 2σ and 1σ Cones + Projected Path
+  if (m.forecastPath && m.forecastPath.length) {
+    const startIdx = candles.length - 1;
+    const startP = candles[startIdx].c;
+
+    // 2σ shaded cone
+    ctx.fillStyle = "rgba(167, 139, 250, 0.16)";
+    ctx.beginPath();
+    ctx.moveTo(xOf(startIdx), yOf(startP));
+    m.upper2.forEach((p, idx) => ctx.lineTo(xOf(startIdx + idx + 1), yOf(p)));
+    for (let idx = m.lower2.length - 1; idx >= 0; idx--) ctx.lineTo(xOf(startIdx + idx + 1), yOf(m.lower2[idx]));
+    ctx.closePath(); ctx.fill();
+
+    // 1σ shaded cone
+    ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
+    ctx.beginPath();
+    ctx.moveTo(xOf(startIdx), yOf(startP));
+    m.upper1.forEach((p, idx) => ctx.lineTo(xOf(startIdx + idx + 1), yOf(p)));
+    for (let idx = m.lower1.length - 1; idx >= 0; idx--) ctx.lineTo(xOf(startIdx + idx + 1), yOf(m.lower1[idx]));
+    ctx.closePath(); ctx.fill();
+
+    // Mean forecast trajectory
+    ctx.strokeStyle = "#c084fc"; ctx.lineWidth = 2.2; ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    ctx.moveTo(xOf(startIdx), yOf(startP));
+    m.forecastPath.forEach((p, idx) => ctx.lineTo(xOf(startIdx + idx + 1), yOf(p)));
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Scalp Entry & Target Exit markers inside Forecast Zone
+    if (m.vCls !== "wait") {
+      const endX = xOf(startIdx + m.forecastPath.length);
+      ctx.strokeStyle = "#16c784"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(forecastStartX, yOf(m.target)); ctx.lineTo(endX, yOf(m.target)); ctx.stroke();
+      ctx.fillStyle = "#16c784"; ctx.font = "bold 10px monospace";
+      ctx.fillText(`TP $${m.target.toFixed(4)}`, forecastStartX + 6, yOf(m.target) - 4);
+
+      ctx.strokeStyle = "#ea3943";
+      ctx.beginPath(); ctx.moveTo(forecastStartX, yOf(m.stop)); ctx.lineTo(endX, yOf(m.stop)); ctx.stroke();
+      ctx.fillStyle = "#ea3943";
+      ctx.fillText(`SL $${m.stop.toFixed(4)}`, forecastStartX + 6, yOf(m.stop) + 11);
+    }
+  }
+}
+
+/* ============================================================================
+ * 9. UI RENDERERS & TIMERS
+ * ==========================================================================*/
+function renderAll() {
+  const m = state.metrics;
+  if (!m.indexPrice) return;
+
+  document.getElementById("livePrice").textContent = "$" + m.indexPrice.toFixed(4);
+  document.getElementById("priceSpread").textContent =
+    `CB:${fmtP(state.cbPrice)} | KRK:${fmtP(state.krkPrice)} | HL:${fmtP(state.hlPrice)}`;
+
+  // Verdict card
+  const vbox = document.getElementById("verdictBox");
+  vbox.className = "verdict-box " + (m.vCls || "wait");
+  document.getElementById("verdictText").textContent = m.verdict;
+  document.getElementById("regimeBadge").textContent = m.flowRegime || "ANALYZING";
+  document.getElementById("kalshiProbLine").textContent =
+    `P(Settle > $${(m.strike || 0).toFixed(4)}): ${(m.pYes * 100).toFixed(1)}% | Fair YES: ${Math.round(m.pYes * 100)}¢`;
+  document.getElementById("sigEntry").textContent = "$" + m.entry.toFixed(4);
+  document.getElementById("sigTarget").textContent = "$" + m.target.toFixed(4);
+  document.getElementById("sigStop").textContent = "$" + m.stop.toFixed(4);
+  document.getElementById("sigHold").textContent = m.holdText;
+  document.getElementById("plainNarrative").innerHTML = m.narrative;
+
+  // Telemetry gauges
+  document.getElementById("mReynolds").textContent = `${m.reynolds.toFixed(2)} (${m.reynolds > state.params.reynoldsBreakoutThresh ? "Turbulent" : "Laminar"})`;
+  document.getElementById("mVelAcc").textContent = `Vel: ${(m.kalmanVel * 1e4).toFixed(2)} | Acc: ${(m.kalmanAcc * 1e4).toFixed(2)}`;
+  document.getElementById("mOU").textContent = `τ½ ${m.ouHalfLifeMin.toFixed(1)}m`;
+  document.getElementById("mHurst").textContent = `Hurst H: ${m.hurst.toFixed(2)} (${m.hurst > 0.54 ? "Trending" : "Mean-Rev"})`;
+  document.getElementById("mSpotCVD").textContent = Math.round(state.spotCVD).toLocaleString() + " XRP";
+  document.getElementById("mSpotDiv").textContent = `3m ΔSpot: ${Math.round(m.dSpot || 0).toLocaleString()}`;
+  document.getElementById("mPerpCVD").textContent = Math.round(state.perpCVD).toLocaleString() + " XRP";
+  document.getElementById("mHawkes").textContent = `Hawkes λ: ${(m.hawkesLambda || 1).toFixed(2)}x`;
+  document.getElementById("mOBI").textContent = `${(m.features.obi * 100).toFixed(1)}%`;
+  document.getElementById("mWalls").textContent = `Max Bid/Ask: ${Math.round(m.maxBidWall || 0)} / ${Math.round(m.maxAskWall || 0)}`;
+
+  const fund8h = (state.hlFunding * 800).toFixed(4);
+  document.getElementById("mFunding").textContent = `${fund8h}% / 8h`;
+  const basis = state.hlOracle && state.hlPrice ? ((state.hlPrice - state.hlOracle) / state.hlOracle * 1e4).toFixed(1) : "0.0";
+  document.getElementById("mOI").textContent = `OI: ${Math.round(state.hlOI).toLocaleString()} | Basis: ${basis}bps`;
+
+  document.getElementById("mVPIN").textContent = `${(m.vpin * 100).toFixed(1)}%`;
+  document.getElementById("mBTC").textContent = `BTC 5m: ${(state.btcReturn5m * 100).toFixed(2)}%`;
+
+  document.getElementById("mGEX").textContent = state.deribit.oiTotal ? `${Math.round(state.deribit.oiTotal).toLocaleString()} OI` : "Loading...";
+  document.getElementById("mMaxPain").textContent = state.deribit.maxPain ? `MaxPain $${state.deribit.maxPain} | P/C ${state.deribit.pcRatio.toFixed(2)}` : "Deribit USDC";
+
+  // Kalshi Edge
+  document.getElementById("kStrike").textContent = "$" + (m.strike || 0).toFixed(4);
+  const last60 = state.ticks.filter(t => t.t > Date.now() - 60000);
+  const twap60 = last60.length ? last60.reduce((a, t) => a + t.p, 0) / last60.length : m.indexPrice;
+  document.getElementById("kTwap").textContent = `60s RTI Est: $${twap60.toFixed(4)}`;
+  const mktYes = +document.getElementById("kalshiYesInput").value || 50;
+  const fairCents = Math.round(m.pYes * 100);
+  const edge = fairCents - mktYes;
+  const kEdgeEl = document.getElementById("kEdge");
+  kEdgeEl.textContent = `Edge: ${edge >= 0 ? "+" : ""}${edge}¢`;
+  kEdgeEl.style.color = Math.abs(edge) >= 6 ? "var(--green)" : "var(--muted)";
+
+  drawChart();
+  renderAccuracyTable();
+}
+```js
+function renderXRPLFeed() {
+  const box = document.getElementById("xrplFeed");
+  const cutoff = Date.now() - 300000;
+  let bull = 0, bear = 0;
+  for (const e of state.xrpl.events) {
+    if (e.t < cutoff) continue;
+    if (e.dir > 0) bull += e.effXrp; else if (e.dir < 0) bear += e.effXrp;
+  }
+  const net = bull - bear;
+  const sum = document.getElementById("xrplSummary");
+  if (sum) {
+    sum.innerHTML = `Net XRPL flow (5m): <b style="color:${net > 0 ? "var(--green)" : net < 0 ? "var(--red)" : "var(--amber)"}">
+      ${net > 0 ? "BULLISH ▲" : net < 0 ? "BEARISH ▼" : "NEUTRAL ◆"}</b>
+      &nbsp; Bull ${Math.round(bull).toLocaleString()} | Bear ${Math.round(bear).toLocaleString()} XRP`;
+  }
+  box.innerHTML = state.xrpl.events.map(e =>
+    `<div class="feed-item ${e.cls}">
+       <span class="dir ${e.cls}">${e.label}</span><b>${Math.round(e.xrp).toLocaleString()} XRP</b>
+       · ${e.kind} · impact <b>${e.tier}</b>
+       <span style="color:var(--muted);float:right;">${new Date(e.t).toLocaleTimeString()} ${e.hash}…</span><br>
+       <span style="color:var(--muted);">${e.reason}</span>
+     </div>`
+  ).join("") || `<div class="feed-item">Listening for XRPL flows ≥ ${XRPL_FEED_MIN.toLocaleString()} XRP...</div>`;
+}
+
+// decay old flow and refresh summary (add inside the boot sequence)
+setInterval(() => { state.xrpl.flowBias *= 0.97; renderXRPLFeed(); }, 5000);
+```
+
+function renderAccuracyTable() {
+  const resolved = state.accuracyLog.filter(r => r.resolved);
+  const liveRes = resolved.filter(r => r.mode === "LIVE");
+  const hits = resolved.filter(r => r.hit).length;
+  const liveHits = liveRes.filter(r => r.hit).length;
+  const diag = computeDiagnostics();
+
+  document.getElementById("accTotal").textContent = `${resolved.length} (${liveRes.length} live)`;
+  document.getElementById("accHit").textContent = resolved.length ? `${(hits / resolved.length * 100).toFixed(1)}%` : "--%";
+  document.getElementById("accLiveHit").textContent = liveRes.length ? `${(liveHits / liveRes.length * 100).toFixed(1)}%` : "Pending";
+  document.getElementById("accBrier").textContent = diag ? diag.brier.toFixed(3) : "--";
+  document.getElementById("accMAE").textContent = diag ? diag.mae.toFixed(1) + " bps" : "--";
+  document.getElementById("accECE").textContent = diag ? `${(diag.ece * 100).toFixed(1)}% (${diag.ece < 0.08 ? "OK" : "DRIFT"})` : "--";
+
+  const tbody = document.getElementById("accTableBody");
+  tbody.innerHTML = state.accuracyLog.slice(0, 60).map(r => {
+    const tStr = new Date(r.ts).toLocaleTimeString();
+    const resBadge = !r.resolved
+      ? `<span class="badge b-pend">PENDING</span>`
+      : (r.hit ? `<span class="badge b-win">HIT</span>` : `<span class="badge b-loss">MISS</span>`);
+    const modeBadge = r.mode === "LIVE" ? `<span class="badge b-live">LIVE</span>` : `<span class="badge b-wf">WALK-FWD</span>`;
+    return `<tr>
+      <td>${tStr}</td>
+      <td>${modeBadge}</td>
+      <td>${r.horizon}m</td>
+      <td>$${r.start.toFixed(4)}</td>
+      <td>$${r.strike.toFixed(4)}</td>
+      <td>$${r.predPrice.toFixed(4)}</td>
+      <td>${(r.pYes * 100).toFixed(0)}%</td>
+      <td>${r.signal}</td>
+      <td>${r.actual ? "$" + r.actual.toFixed(4) : "--"}</td>
+      <td>${r.errBps != null ? r.errBps.toFixed(1) : "--"}</td>
+      <td>${resBadge}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderGovernanceTables(diag) {
+  const wb = document.getElementById("weightsBody");
+  const w = state.params.weights;
+  wb.innerHTML = Object.keys(w).map(k => {
+    const corr = diag?.corrs?.[k] ?? 0;
+    const feat = state.metrics.features?.[k] ?? 0;
+    return `<tr>
+      <td>${k}</td>
+      <td>${(w[k] * 100).toFixed(1)}%</td>
+      <td style="color:${corr >= 0 ? "var(--green)" : "var(--red)"}">${corr.toFixed(3)}</td>
+      <td>${(w[k] * feat).toFixed(3)}</td>
+    </tr>`;
+  }).join("") + `<tr><td><b>Temp T</b></td><td>${state.params.temperature}</td><td colspan="2">Logistic Scaling</td></tr>`;
+
+  const gb = document.getElementById("govLogBody");
+  gb.innerHTML = state.govLog.map(g =>
+    `<tr><td>${g.t}</td><td><b>${g.decision}</b></td><td>${g.detail}</td></tr>`
+  ).join("") || `<tr><td colspan="3" style="color:var(--muted);">No calibration overrides applied yet (running baseline v1.0.0).</td></tr>`;
+}
+
+function updateCountdowns() {
+  const sec = Math.floor(Date.now() / 1000);
+  const r5 = 300 - (sec % 300);
+  const r15 = 900 - (sec % 900);
+  document.getElementById("timer5m").textContent = `5m Scalp: ${fmtMMSS(r5)}`;
+  document.getElementById("timer15m").textContent = `Kalshi 15m: ${fmtMMSS(r15)}`;
+  if (r15 === 900 && !state.kalshi.proxyConnected && !state.kalshi.manualStrike) {
+    state.kalshi.windowOpenStrike = state.metrics.indexPrice;
+  }
+}
+
+function fmtMMSS(s) { return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+function fmtP(p) { return p ? "$" + p.toFixed(4) : "--"; }
+function averageValid(arr) { const v = arr.filter(x => typeof x === "number" && !isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
+
+/* ============================================================================
+ * 10. CONTROLS, CSV EXPORT, WHITE PAPER & ZERO-DEPENDENCY .ZIP BUNDLER
+ * ==========================================================================*/
+function setHorizon(m) {
+  state.horizonMin = m;
+  document.getElementById("hz5").className = m === 5 ? "active" : "";
+  document.getElementById("hz15").className = m === 15 ? "active" : "";
+  recomputeEngine();
+}
+function setTimeframe(m) {
+  state.timeframeMin = m;
+  document.getElementById("tf1").className = m === 1 ? "active" : "";
+  document.getElementById("tf5").className = m === 5 ? "active" : "";
+  drawChart();
+}
+function lockWindowOpenStrike() {
+  const p = state.metrics.indexPrice;
+  if (p) {
+    state.kalshi.manualStrike = p;
+    document.getElementById("strikeInput").value = p.toFixed(4);
+    recomputeEngine();
+  }
+}
+function clearManualStrike() {
+  state.kalshi.manualStrike = null;
+  document.getElementById("strikeInput").value = "";
+  recomputeEngine();
+}
+document.getElementById("strikeInput").addEventListener("change", (e) => {
+  const val = parseFloat(e.target.value);
+  state.kalshi.manualStrike = !isNaN(val) && val > 0 ? val : null;
+  recomputeEngine();
+});
+document.getElementById("kalshiYesInput").addEventListener("input", () => renderAll());
+
+function switchTab(id) {
+  ["tabLog", "tabGov", "tabRes"].forEach(t => document.getElementById(t).classList.remove("active"));
+  ["tabBtnLog", "tabBtnGov", "tabBtnRes"].forEach(b => document.getElementById(b).classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  const btnMap = { tabLog: "tabBtnLog", tabGov: "tabBtnGov", tabRes: "tabBtnRes" };
+  document.getElementById(btnMap[id]).classList.add("active");
+}
+
+function resetAccuracyLog() {
+  state.accuracyLog = [];
+  saveJSON("xrp_acc_log_v1", []);
+  runWalkForwardBaseline();
+  renderAccuracyTable();
+}
+
+function exportAccuracyCSV() {
+  const hdr = "Timestamp,Mode,HorizonMin,StartPrice,Strike,PredPrice,ProbYES,Signal,ActualPrice,ErrorBps,Brier,Hit\n";
+  const rows = state.accuracyLog.map(r => [
+    new Date(r.ts).toISOString(), r.mode, r.horizon, r.start, r.strike, r.predPrice,
+    r.pYes.toFixed(4), r.signal, r.actual ?? "", r.errBps?.toFixed(2) ?? "", r.brier?.toFixed(4) ?? "", r.hit ?? ""
+  ].join(",")).join("\n");
+  triggerDownload("xrp_accuracy_log.csv", hdr + rows, "text/csv");
+}
+
+const WHITEPAPER_MD = `# XRP Quantitative Hydrodynamics & Kalshi 5m/15m Microstructure White Paper
+
+## 1. Purpose & Execution Domain
+This system models short-horizon (1m–15m) XRP/USD price formation by fusing classical physics, stochastic differential equations, microstructure order-flow, derivatives positioning, options gamma pinning, and on-chain XRP Ledger settlements. It is specifically calibrated for:
+1. **5-Minute Momentum & Mean-Reversion Scalping**
+2. **Kalshi \`KXXRP15M\` Binary Contract Settlement** (settled on the final 60-second average of the CF Benchmarks \`XRPUSD_RTI\` index).
+
+## 2. Mathematical & Physical Architecture
+
+### 2.1 Hydrodynamic Reynolds Regime Classifier
+We treat resting order-book liquidity as fluid viscosity $\\mu_{\\text{book}}$ and aggressive market order flow weighted by trade arrival rate as momentum flux:
+$$Re = \\frac{|v_{\\text{Kalman}}| \\cdot \\lambda_{\\text{Hawkes}}}{\\log_{10}(\\text{Depth}_{\\text{USD}})}$$
+- **Laminar Flow ($Re \\le Re_{\\text{crit}}$):** Resting limit walls absorb aggression; price follows Ornstein-Uhlenbeck mean reversion toward Micro-VWAP.
+- **Turbulent Flow ($Re > Re_{\\text{crit}}$):** Thin liquidity gives way to liquidation cascades and self-exciting Hawkes bursts.
+
+### 2.2 State-Space Kalman Kinematics
+To strip bid-ask bounce noise, raw mid-prices pass through a 2-state constant-velocity Kalman Filter tracking latent price $x_t$, velocity $v_t$, and acceleration $a_t = \\Delta v_t$.
+
+### 2.3 Ornstein-Uhlenbeck (OU) Half-Life & Hurst Exponent
+Deviation from 30-minute Micro-VWAP is fit as an AR(1) process $d_t = \\phi d_{t-1} + \\epsilon_t$, yielding mean-reversion speed $\\theta = -\\ln(\\phi)$ and expected scalp half-life:
+$$\\tau_{1/2} = \\frac{\\ln 2}{\\theta}$$
+Simultaneously, the 5-minute Variance Ratio yields an online Hurst Exponent $H \\in [0.2, 0.85]$ switching weight dynamically between mean reversion ($H < 0.5$) and trend persistence ($H > 0.54$).
+
+### 2.4 Microstructure Factor Vector
+1. **Spot vs. Perp CVD Divergence:** Coinbase + Kraken spot CVD minus damped Hyperliquid perp CVD isolates real spot accumulation from fragile leverage-only fakeouts.
+2. **Multi-Level L2 OBI:** Weighted bid/ask depth imbalance across top 12 Kraken + Hyperliquid levels.
+3. **Negative Saturated Short Trap:** Hyperliquid 8h funding $< -0.015\\%$ paired with rising Open Interest identifies crowded short squeezes.
+4. **Hawkes Self-Exciting Intensity ($\\lambda$):** Ratio of 10-second vs. 60-second trade arrival rate.
+5. **VPIN Toxicity Proxy:** $|V_{\\text{buy}} - V_{\\text{sell}}| / V_{\\text{total}}$ warns of informed adverse selection.
+6. **XRPL On-Chain Exchange Flows:** Live \`wss://xrplcluster.com\` ledger stream flagging $\\ge 25,000$ XRP movements into/out of known exchange hot wallets.
+7. **BTC Lead-Lag Liquidity Beta:** 5-minute BTC-USD impulse from Coinbase WS.
+
+### 2.5 Kalshi Binary Settlement Probability ($N(d_2)$ + 60s TWAP Adjustment)
+Expected terminal price $\\hat{P}_{t+H}$ and realized volatility $\\sigma_{1m}\\sqrt{H}$ feed a temperature-scaled Normal CDF:
+$$P(\\text{Settle} > K) = \\Phi\\!\\left(\\frac{\\ln(\\hat{P}_{t+H}/K)}{\\sigma_{1m}\\sqrt{H}\\cdot \\gamma_{\\text{TWAP}} \\cdot T}\\right)$$
+where $\\gamma_{\\text{TWAP}} = 0.82$ during the final settlement window to account for the variance-dampening effect of CF Benchmarks' 60-second averaging window.
+
+## 3. Self-Monitoring & Human-in-the-Loop Calibration
+Every prediction is persisted with its feature vector, Brier Score $(p - y)^2$, directional hit, and Expected Calibration Error (ECE). When hit rate drops below 55%, Brier $> 0.245$, or ECE $> 8.5\\%$, the engine computes bounded correlation-weighted parameter updates and **halts automatic mutation until a human explicitly approves or rejects the diff**.
+`;
+
+const LOGIC_SPEC_MD = `# System Logic & API Integration Specification
+
+## Live Data Topology
+- **Spot Trades (US):** \`wss://advanced-trade-ws.coinbase.com\` (\`XRP-USD\`, \`BTC-USD\`)
+- **Spot Trades & 25-Level L2 Book:** \`wss://ws.kraken.com/v2\` (\`XRP/USD\`)
+- **Global Perp Trades, L2, Funding & OI:** \`wss://api.hyperliquid.xyz/ws\` + \`POST https://api.hyperliquid.xyz/info\` (\`metaAndAssetCtxs\`)
+- **XRP Options OI & Max Pain:** \`GET https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=USDC&kind=option\`
+- **On-Chain XRPL Ledger:** \`wss://xrplcluster.com\` (\`ledger\`, \`transactions\`)
+- **Kalshi KXXRP15M (via Optional Local CORS Proxy):** \`http://127.0.0.1:8787/kalshi/markets?series_ticker=KXXRP15M&status=open\`
+
+## Flip & Anomaly Detection Rules
+1. **Bearish Absorption Flip:** Perp CVD rising rapidly + Spot CVD flat/falling + Negative L2 OBI -> Overhead ask walls absorbing forced/leveraged buys.
+2. **Short Squeeze Ignition:** Hyperliquid 8h funding $< -0.015\\%$ + Positive Spot CVD + Positive OBI -> Forced short buy cascade imminent.
+3. **Final-60s CF RTI Pin:** Seconds left in 15m Kalshi window $\\le 60$ and $|P - K|/P < 0.12\\%$ -> 60s TWAP dampens spike volatility.
+`;
+
+const KALSHI_PROXY_PY = `#!/usr/bin/env python3
+"""Optional 1-command local CORS proxy for live Kalshi KXXRP15M market quotes.
+Run: python3 kalshi_proxy.py
+"""
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import urllib.request
+
+KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2"
+
+class Proxy(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if not self.path.startswith("/kalshi/"):
+            self.send_response(404); self.end_headers(); return
+        target = KALSHI_BASE + self.path[len("/kalshi"):]
+        try:
+            req = urllib.request.Request(target, headers={"User-Agent": "XRP-Quant-Terminal/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                body = resp.read()
+                self.send_response(resp.status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(body)
+        except Exception as e:
+            self.send_response(502)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(str(e).encode())
+
+if __name__ == "__main__":
+    print("Kalshi CORS Proxy listening on http://127.0.0.1:8787")
+    HTTPServer(("127.0.0.1", 8787), Proxy).serve_forever()
+`;
+
+const KALSHI_PROXY_JS = `// Optional Node.js CORS proxy for live Kalshi KXXRP15M quotes
+// Run: node kalshi_proxy.js
+const http = require("http");
+const https = require("https");
+
+http.createServer((req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  if (!req.url.startsWith("/kalshi/")) { res.statusCode = 404; return res.end(); }
+  const url = "https://api.elections.kalshi.com/trade-api/v2" + req.url.slice(7);
+  https.get(url, (apiRes) => {
+    res.writeHead(apiRes.statusCode, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+    apiRes.pipe(res);
+  }).on("error", (e) => { res.statusCode = 502; res.end(e.message); });
+}).listen(8787, "127.0.0.1", () => console.log("Kalshi Proxy listening on http://127.0.0.1:8787"));
+`;
+
+const README_MD = `# XRP Quantitative Hydrodynamics & Kalshi Scalping Suite
+
+## Quick Start
+1. Open \`index.html\` directly in any modern browser (Chrome, Brave, Edge, Firefox, Safari).
+2. (Optional) To pull live Kalshi \`KXXRP15M\` strikes & YES/NO bid/ask quotes directly into the UI, run either:
+   - \`python3 kalshi_proxy.py\`
+   - OR \`node kalshi_proxy.js\`
+   Keep \`index.html\` open; it automatically detects \`http://127.0.0.1:8787\`.
+
+## Included Files
+- \`index.html\` — Complete live WebSocket terminal, Canvas Forecast Chart, Physics/SDE engine, Accuracy Log & Self-Calibration Governance.
+- \`WHITEPAPER.md\` — Full mathematical & physical derivations.
+- \`LOGIC_SPEC.md\` — API topology and causal flip/anomaly rules.
+- \`kalshi_proxy.py\` / \`kalshi_proxy.js\` — Zero-dependency local CORS bridges for Kalshi's public REST API.
+`;
+
+function openWhitepaperModal() {
+  document.getElementById("wpContent").innerHTML =
+    `<pre style="white-space:pre-wrap;">${escapeHtml(WHITEPAPER_MD + "\n\n---\n\n" + LOGIC_SPEC_MD)}</pre>`;
+  document.getElementById("wpModal").classList.add("open");
+}
+function closeWhitepaperModal() { document.getElementById("wpModal").classList.remove("open"); }
+function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+// Zero-Dependency CRC32 + Standard Store ZIP Builder
+function crc32(bytes) {
+  let c = -1;
+  for (let i = 0; i < bytes.length; i++) {
+    c = (c >>> 8) ^ CRC_TABLE[(c ^ bytes[i]) & 0xff];
+  }
+  return (c ^ -1) >>> 0;
+}
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c;
+  }
+  return t;
+})();
+
+function buildZip(files) {
+  const enc = new TextEncoder();
+  const localParts = [], centralParts = [];
+  let offset = 0;
+  for (const f of files) {
+    const nameB = enc.encode(f.name);
+    const dataB = enc.encode(f.content);
+    const crc = crc32(dataB);
+
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true);
+    lh.setUint16(4, 20, true);
+    lh.setUint16(8, 0, true); // Store
+    lh.setUint32(14, crc, true);
+    lh.setUint32(18, dataB.length, true);
+    lh.setUint32(22, dataB.length, true);
+    lh.setUint16(26, nameB.length, true);
+
+    localParts.push(new Uint8Array(lh.buffer), nameB, dataB);
+
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true);
+    ch.setUint16(4, 20, true);
+    ch.setUint16(6, 20, true);
+    ch.setUint32(16, crc, true);
+    ch.setUint32(20, dataB.length, true);
+    ch.setUint32(24, dataB.length, true);
+    ch.setUint16(28, nameB.length, true);
+    ch.setUint32(42, offset, true);
+
+    centralParts.push(new Uint8Array(ch.buffer), nameB);
+    offset += 30 + nameB.length + dataB.length;
+  }
+  const cdSize = centralParts.reduce((a, b) => a + b.length, 0);
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0, 0x06054b50, true);
+  eocd.setUint16(8, files.length, true);
+  eocd.setUint16(10, files.length, true);
+  eocd.setUint32(12, cdSize, true);
+  eocd.setUint32(16, offset, true);
+
+  return new Blob([...localParts, ...centralParts, new Uint8Array(eocd.buffer)], { type: "application/zip" });
+}
+
+function downloadAllSourceZip() {
+  const blob = buildZip([
+    { name: "index.html", content: PRISTINE_INDEX_HTML },
+    { name: "WHITEPAPER.md", content: WHITEPAPER_MD },
+    { name: "LOGIC_SPEC.md", content: LOGIC_SPEC_MD },
+    { name: "kalshi_proxy.py", content: KALSHI_PROXY_PY },
+    { name: "kalshi_proxy.js", content: KALSHI_PROXY_JS },
+    { name: "README.md", content: README_MD }
+  ]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "xrp-kalshi-quant-suite.zip";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function triggerDownload(filename, text, mime) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+  a.download = filename;
+  a.click();
+}
+
+/* ============================================================================
+ * 11. BOOT SEQUENCE
+ * ==========================================================================*/
+document.addEventListener("DOMContentLoaded", async function boot() {
+  PRISTINE_INDEX_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+  renderGovernanceTables(computeDiagnostics());
+  renderAccuracyTable();
+  updateCountdowns();
+  setInterval(updateCountdowns, 1000);
+
+  await loadHistoricalCandles();
+  connectCoinbaseWS();
+  connectKrakenWS();
+  connectHyperliquidWS();
+  connectXRPL();
+
+  pollHyperliquidMeta();
+  pollDeribitOptions();
+  pollKalshiProxy();
+
+  setInterval(pollHyperliquidMeta, 10000);
+  setInterval(pollDeribitOptions, 30000);
+  setInterval(pollKalshiProxy, 8000);
+  setInterval(recomputeEngine, 1500);
+  window.addEventListener("resize", drawChart);
+});
+</script>
+</body>
+</html>
